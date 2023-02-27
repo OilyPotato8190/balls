@@ -4,15 +4,11 @@ const ctx = cnv.getContext("2d");
 cnv.width = window.innerWidth - 40;
 cnv.height = window.innerHeight - 40;
 
-const add = 2 * Math.PI;
-const remainder = 2 * Math.PI;
-console.log((-Math.PI + add) % remainder);
-console.log((0 + add) % remainder);
-console.log((Math.PI + add) % remainder);
-
 let mouse = {};
-let balls = [];
-let ballCount = 1;
+let objects = {
+  balls: [null],
+  squares: [],
+};
 
 let marker = {
   x: cnv.width / 2,
@@ -28,10 +24,10 @@ let marker = {
   },
 
   shoot(angle) {
-    for (let n = 0; n < ballCount; n++) {
-      const newAngle = (angle + 2 * Math.PI) % (2 * Math.PI);
-      console.log(angle, newAngle);
-      new Ball();
+    marker.shooting = true;
+    for (let i = 0; i < objects.balls.length; i++) {
+      const flipped = ((angle + 2 * Math.PI) % (2 * Math.PI)) - Math.PI;
+      new Ball(flipped, i);
     }
   },
 };
@@ -79,29 +75,96 @@ let aim = {
 };
 
 class Ball {
-  constructor(angle) {
+  constructor(angle, index) {
+    this.angle = angle;
+    this.index = index;
+
     this.x = marker.x;
     this.y = marker.y;
-    this.speed = 20;
+    this.vx = 0;
+    this.vy = 0;
+    this.speed = 3;
     this.r = 7;
-    this.angle = angle;
 
-    balls.push(this);
+    this.setVelocity();
+    objects.balls[this.index] = this;
   }
 
   draw() {
     this.move();
+    this.checkCollision();
 
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.r, 0, 2 * Math.PI);
     ctx.fill();
   }
 
+  setVelocity() {
+    this.vx = this.speed * Math.cos(this.angle);
+    this.vy = this.speed * Math.sin(this.angle);
+  }
+
   move() {
-    this.x += this.speed * Math.cos(this.angle);
-    this.y += this.speed * Math.sin(this.angle);
+    this.x += this.vx;
+    this.y += this.vy;
+  }
+
+  checkCollision() {
+    if (this.x > cnv.width || this.x < 0) {
+      this.vx *= -1;
+    }
+
+    if (this.y < 0) {
+      this.vy *= -1;
+    } else if (this.y > cnv.height) {
+      objects.balls[this.index] = null;
+    }
+
+    for (let i = 0; i < objects.squares.length; i++) {
+      const square = objects.squares[i];
+      let distX = 0;
+      let distY = 0;
+
+      if (this.x < square.x) {
+        distX = this.x - square.x;
+      } else if (this.x > square.x + square.size) {
+        distX = this.x - square.x + square.size;
+      }
+
+      if (this.y < square.y) {
+        distY = this.y - square.y;
+      } else if (this.y > square.y + square.size) {
+        distY = this.y - square.y + square.size;
+      }
+
+      function getDist(circle, squre) {
+        return circle + this.r - square;
+      }
+
+      const dist = Math.sqrt(distX ** 2 + distY ** 2);
+      if (dist < this.r) {
+        this.vx *= -1;
+      }
+    }
   }
 }
+
+class Square {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+
+    this.size = 20;
+
+    objects.squares.push(this);
+  }
+
+  draw() {
+    ctx.fillRect(this.x, this.y, this.size, this.size);
+  }
+}
+
+new Square(100, 100);
 
 document.addEventListener("mousemove", (e) => {
   const rect = canvas.getBoundingClientRect();
@@ -129,8 +192,17 @@ function loop() {
   marker.draw();
   aim.draw();
 
-  for (let i = 0; i < balls.length; i++) {
-    balls[i].draw();
+  for (let i = 0; i < objects.balls.length; i++) {
+    if (objects.balls[i]) {
+      objects.balls[i].draw();
+      marker.shooting = true;
+    } else {
+      marker.shooting = false;
+    }
+  }
+
+  for (let i = 0; i < objects.squares.length; i++) {
+    objects.squares[i].draw();
   }
 
   requestAnimationFrame(loop);
