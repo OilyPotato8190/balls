@@ -83,7 +83,7 @@ class Ball {
     this.y = marker.y;
     this.vx = 0;
     this.vy = 0;
-    this.speed = 3;
+    this.speed = 1;
     this.r = 7;
 
     this.setVelocity();
@@ -110,40 +110,46 @@ class Ball {
   }
 
   checkCollision() {
-    if (this.x > cnv.width || this.x < 0) {
+    if (this.x - this.r > cnv.width || this.x + this.r < 0) {
       this.vx *= -1;
     }
 
-    if (this.y < 0) {
+    if (this.y + this.r < 0) {
       this.vy *= -1;
-    } else if (this.y > cnv.height) {
+    } else if (this.y - this.r > cnv.height) {
       objects.balls[this.index] = null;
     }
 
     for (let i = 0; i < objects.squares.length; i++) {
       const square = objects.squares[i];
-      let distX = 0;
-      let distY = 0;
 
-      if (this.x < square.x) {
-        distX = this.x - square.x;
-      } else if (this.x > square.x + square.size) {
-        distX = this.x - square.x + square.size;
+      const squareEdges = {
+        left: square.x,
+        right: square.x + square.size,
+        top: square.y,
+        bottom: square.y + square.size,
+      };
+
+      let gap = {
+        x: 0,
+        y: 0,
+      };
+
+      if (this.x < squareEdges.left) {
+        gap.x = this.x - squareEdges.left;
+      } else if (this.x > squareEdges.right) {
+        gap.x = this.x - squareEdges.right;
       }
 
-      if (this.y < square.y) {
-        distY = this.y - square.y;
-      } else if (this.y > square.y + square.size) {
-        distY = this.y - square.y + square.size;
+      if (this.y < squareEdges.top) {
+        gap.y = this.y - squareEdges.top;
+      } else if (this.y > squareEdges.bottom) {
+        gap.y = this.y - squareEdges.bottom;
       }
 
-      function getDist(circle, squre) {
-        return circle + this.r - square;
-      }
-
-      const dist = Math.sqrt(distX ** 2 + distY ** 2);
+      const dist = Math.sqrt(gap.x ** 2 + gap.y ** 2);
       if (dist < this.r) {
-        this.vx *= -1;
+        console.log("collision");
       }
     }
   }
@@ -164,7 +170,7 @@ class Square {
   }
 }
 
-new Square(100, 100);
+new Square(350, 600);
 
 document.addEventListener("mousemove", (e) => {
   const rect = canvas.getBoundingClientRect();
