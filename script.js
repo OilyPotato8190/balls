@@ -16,19 +16,26 @@ let marker = {
   r: 7,
   shooting: false,
   draw: true,
+  angle: 0,
+  frameShot: 0,
+  ballIndex: 0,
 
   draw() {
+    if (this.shooting) this.shoot();
+
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.r, 0, 2 * Math.PI);
     ctx.fill();
   },
 
-  shoot(angle) {
-    marker.shooting = true;
-    for (let i = 0; i < objects.balls.length; i++) {
-      const flipped = ((angle + 2 * Math.PI) % (2 * Math.PI)) - Math.PI;
-      new Ball(flipped, i);
-    }
+  shoot() {
+    if (!(frameCount - this.frameShot) % 20) return;
+
+    const flipped = ((this.angle + 2 * Math.PI) % (2 * Math.PI)) - Math.PI;
+    new Ball(flipped, this.ballIndex);
+
+    this.ballIndex++;
+    if (this.ballIndex >= objects.balls.length) this.shooting = false;
   },
 };
 
@@ -83,7 +90,7 @@ class Ball {
     this.y = marker.y;
     this.vx = 0;
     this.vy = 0;
-    this.speed = 1;
+    this.speed = 10;
     this.r = 7;
 
     this.setVelocity();
@@ -110,11 +117,11 @@ class Ball {
   }
 
   checkCollision() {
-    if (this.x - this.r > cnv.width || this.x + this.r < 0) {
+    if (this.x + this.r > cnv.width || this.x - this.r < 0) {
       this.vx *= -1;
     }
 
-    if (this.y + this.r < 0) {
+    if (this.y - this.r < 0) {
       this.vy *= -1;
     } else if (this.y - this.r > cnv.height) {
       objects.balls[this.index] = null;
@@ -148,8 +155,26 @@ class Ball {
       }
 
       const dist = Math.sqrt(gap.x ** 2 + gap.y ** 2);
+
       if (dist < this.r) {
-        console.log("collision");
+        square.health--;
+
+        const lastPos = {
+          x: this.x - this.vx,
+          y: this.y - this.vy,
+        };
+
+        if (lastPos.x < squareEdges.left - this.r && squareEdges.left - this.r < this.x) {
+          this.vx *= -1;
+        } else if (this.x < squareEdges.right + this.r && squareEdges.right + this.r < lastPos.x) {
+          this.vx *= -1;
+        }
+
+        if (lastPos.y < squareEdges.top - this.r && squareEdges.top - this.r < this.y) {
+          this.vy *= -1;
+        } else if (this.y < squareEdges.bottom + this.r && squareEdges.bottom + this.r < lastPos.y) {
+          this.vy *= -1;
+        }
       }
     }
   }
@@ -159,18 +184,30 @@ class Square {
   constructor(x, y) {
     this.x = x;
     this.y = y;
+    this.health = objects.balls.length;
 
-    this.size = 20;
+    this.size = 50;
+    this.fontSize = this.size * 0.6;
 
     objects.squares.push(this);
   }
 
   draw() {
     ctx.fillRect(this.x, this.y, this.size, this.size);
+
+    ctx.fillStyle = "red";
+    ctx.font = `${this.fontSize}px Comic Sans MS`;
+    const width = ctx.measureText(this.health).width;
+    ctx.fillText(this.health, this.x - width / 2 + this.size / 2, this.y + this.fontSize / 3 + this.size / 2);
+    ctx.fillStyle = "black";
   }
 }
 
-new Square(350, 600);
+for (let n = 0; n < 10; n++) {
+  objects.balls.push(null);
+}
+
+new Square(200, 700);
 
 document.addEventListener("mousemove", (e) => {
   const rect = canvas.getBoundingClientRect();
@@ -188,11 +225,17 @@ document.addEventListener("mouseup", () => {
   mouse.down = false;
 
   if (!marker.shooting && aim.spacing > 20) {
-    marker.shoot(aim.angle);
+    marker.shooting = true;
+    marker.angle = aim.angle;
+    marker.frameShot = frameCount;
+    marker.ballIndex = 0;
   }
 });
 
+let frameCount = 0;
+
 function loop() {
+  frameCount++;
   ctx.clearRect(0, 0, cnv.width, cnv.height);
 
   marker.draw();
@@ -215,3 +258,5 @@ function loop() {
 }
 
 loop();
+
+// setInterval(loop, 250);
