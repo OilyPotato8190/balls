@@ -19,6 +19,7 @@ let marker = {
   angle: 0,
   frameShot: 0,
   ballIndex: 0,
+  shootDelay: 5,
 
   draw() {
     if (this.shooting) this.shoot();
@@ -29,7 +30,7 @@ let marker = {
   },
 
   shoot() {
-    if (!(frameCount - this.frameShot) % 20) return;
+    if ((frameCount - this.frameShot) % this.shootDelay && frameCount - this.frameShot) return;
 
     const flipped = ((this.angle + 2 * Math.PI) % (2 * Math.PI)) - Math.PI;
     new Ball(flipped, this.ballIndex);
@@ -164,17 +165,63 @@ class Ball {
           y: this.y - this.vy,
         };
 
-        if (lastPos.x < squareEdges.left - this.r && squareEdges.left - this.r < this.x) {
-          this.vx *= -1;
-        } else if (this.x < squareEdges.right + this.r && squareEdges.right + this.r < lastPos.x) {
-          this.vx *= -1;
+        const distTo = {
+          left: Math.abs(this.x - squareEdges.left),
+          right: Math.abs(this.x - squareEdges.right),
+          top: Math.abs(this.y - squareEdges.top),
+          bottom: Math.abs(this.y - squareEdges.bottom),
+        };
+
+        const closest = Math.min(...Object.values(distTo));
+
+        const a1 = this.y - lastPos.y;
+        const b1 = this.x - lastPos.x;
+        const c1 = this.x * lastPos.y - lastPos.x * this.y;
+
+        let a2, b2, c2;
+
+        if (closest == distTo.left) {
+          a2 = -1;
+          b2 = 0;
+          c2 = squareEdges.left;
+        } else if (closest == distTo.right) {
+          a2 = -1;
+          b2 = 0;
+          c2 = squareEdges.right;
+        } else if (closest == distTo.top) {
+          a2 = 0;
+          b2 = 1;
+          c2 = squareEdges.top;
+        } else if (closest == distTo.bottom) {
+          a2 = 0;
+          b2 = 1;
+          c2 = squareEdges.bottom;
         }
 
-        if (lastPos.y < squareEdges.top - this.r && squareEdges.top - this.r < this.y) {
-          this.vy *= -1;
-        } else if (this.y < squareEdges.bottom + this.r && squareEdges.bottom + this.r < lastPos.y) {
-          this.vy *= -1;
-        }
+        let intersection = {
+          x: (b1 * c2 - b2 * c1) / (a1 * b2 - a2 * b1),
+          y: (a2 * c1 - a1 * c2) / (a1 * b2 - a2 * b1),
+        };
+
+        ctx.fillStyle = "red";
+        ctx.beginPath();
+        ctx.arc(intersection.x, intersection.y, 3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "black";
+
+        console.log(intersection);
+
+        // if (lastPos.x < squareEdges.left - this.r && squareEdges.left - this.r < this.x) {
+        //   this.vx *= -1;
+        // } else if (this.x < squareEdges.right + this.r && squareEdges.right + this.r < lastPos.x) {
+        //   this.vx *= -1;
+        // }
+
+        // if (lastPos.y < squareEdges.top - this.r && squareEdges.top - this.r < this.y) {
+        //   this.vy *= -1;
+        // } else if (this.y < squareEdges.bottom + this.r && squareEdges.bottom + this.r < lastPos.y) {
+        //   this.vy *= -1;
+        // }
       }
     }
   }
@@ -193,7 +240,7 @@ class Square {
   }
 
   draw() {
-    ctx.fillRect(this.x, this.y, this.size, this.size);
+    ctx.strokeRect(this.x, this.y, this.size, this.size);
 
     ctx.fillStyle = "red";
     ctx.font = `${this.fontSize}px Comic Sans MS`;
@@ -207,7 +254,7 @@ for (let n = 0; n < 10; n++) {
   objects.balls.push(null);
 }
 
-new Square(200, 700);
+new Square(marker.x - 100, marker.y - 100);
 
 document.addEventListener("mousemove", (e) => {
   const rect = canvas.getBoundingClientRect();
@@ -227,7 +274,7 @@ document.addEventListener("mouseup", () => {
   if (!marker.shooting && aim.spacing > 20) {
     marker.shooting = true;
     marker.angle = aim.angle;
-    marker.frameShot = frameCount;
+    marker.frameShot = frameCount - 1;
     marker.ballIndex = 0;
   }
 });
@@ -244,9 +291,6 @@ function loop() {
   for (let i = 0; i < objects.balls.length; i++) {
     if (objects.balls[i]) {
       objects.balls[i].draw();
-      marker.shooting = true;
-    } else {
-      marker.shooting = false;
     }
   }
 
@@ -254,9 +298,9 @@ function loop() {
     objects.squares[i].draw();
   }
 
-  requestAnimationFrame(loop);
+  // requestAnimationFrame(loop);
 }
 
-loop();
+// loop();
 
-// setInterval(loop, 250);
+setInterval(loop, 250);
