@@ -104,7 +104,7 @@ class Ball {
 
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.r, 0, 2 * Math.PI);
-    ctx.fill();
+    ctx.stroke();
   }
 
   setVelocity() {
@@ -158,7 +158,7 @@ class Ball {
       const dist = Math.sqrt(gap.x ** 2 + gap.y ** 2);
 
       if (dist < this.r) {
-        square.health--;
+        // square.health--;
 
         const lastPos = {
           x: this.x - this.vx,
@@ -200,16 +200,22 @@ class Ball {
 
         let intersection = {
           x: (b1 * c2 - b2 * c1) / (a1 * b2 - a2 * b1),
-          y: (a2 * c1 - a1 * c2) / (a1 * b2 - a2 * b1),
+          y: -(a2 * c1 - a1 * c2) / (a1 * b2 - a2 * b1),
         };
 
+        const m = (intersection.x - this.x, intersection.y - this.y);
+        const c = intersection.y - m * intersection.x;
+
         ctx.fillStyle = "red";
+        ctx.beginPath();
+        ctx.moveTo(0 * m, 0 - c);
+        ctx.lineTo(cnv.width * m, cnv.width - c);
+        ctx.stroke();
+
         ctx.beginPath();
         ctx.arc(intersection.x, intersection.y, 3, 0, Math.PI * 2);
         ctx.fill();
         ctx.fillStyle = "black";
-
-        console.log(intersection);
 
         // if (lastPos.x < squareEdges.left - this.r && squareEdges.left - this.r < this.x) {
         //   this.vx *= -1;
@@ -250,11 +256,11 @@ class Square {
   }
 }
 
-for (let n = 0; n < 10; n++) {
-  objects.balls.push(null);
-}
+// for (let n = 0; n < 10; n++) {
+//   objects.balls.push(null);
+// }
 
-new Square(marker.x - 100, marker.y - 100);
+new Square(marker.x - 60, marker.y - 60);
 
 document.addEventListener("mousemove", (e) => {
   const rect = canvas.getBoundingClientRect();
@@ -303,4 +309,4 @@ function loop() {
 
 // loop();
 
-setInterval(loop, 250);
+setInterval(loop, 500);
