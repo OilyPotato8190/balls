@@ -91,8 +91,8 @@ class Ball {
     this.y = marker.y;
     this.vx = 0;
     this.vy = 0;
-    this.speed = 1;
-    this.r = 7;
+    this.speed = 2;
+    this.r = 90;
 
     this.setVelocity();
     objects.balls[this.index] = this;
@@ -175,83 +175,89 @@ class Ball {
       if (dist < this.r) {
         // square.health--;
 
-        if (side === "topLeft" || side === "topRight" || side === "bottomLeft" || side === "bottomRight") {
-          const lastPos = {
-            x: this.x - this.vx,
-            y: this.y - this.vy,
-          };
+        // if (side === "topLeft" || side === "topRight" || side === "bottomLeft" || side === "bottomRight") {
+        const lastPos = {
+          x: this.x - this.vx,
+          y: this.y - this.vy,
+        };
 
-          const distTo = {
-            left: Math.abs((squareEdges.left - this.x) / this.vx),
-            right: Math.abs((squareEdges.right - this.x) / this.vx),
-            top: Math.abs((squareEdges.top - this.y) / this.vy),
-            bottom: Math.abs((squareEdges.bottom - this.y) / this.vy),
-          };
+        const distTo = {
+          left: getDist(squareEdges.left, this, "x", 1),
+          right: getDist(squareEdges.right, this, "x", -1),
+          top: getDist(squareEdges.top, this, "y", 1),
+          bottom: getDist(squareEdges.bottom, this, "y", -1),
+        };
 
-          const closest = Math.min(...Object.values(distTo));
+        function getDist(squareEdge, circle, axis, direction) {
+          const dist = Math.abs((squareEdge - circle[axis]) / circle["v" + axis]);
 
-          const a1 = this.y - lastPos.y;
-          const b1 = this.x - lastPos.x;
-          const c1 = this.x * lastPos.y - lastPos.x * this.y;
-
-          let a2, b2, c2;
-          let moveSide = {};
-
-          if (closest == distTo.left) {
-            a2 = -1;
-            b2 = 0;
-            c2 = squareEdges.left - this.r;
-            moveSide.x = -this.r;
-          } else if (closest == distTo.right) {
-            a2 = -1;
-            b2 = 0;
-            c2 = squareEdges.right + this.r;
-            moveSide.x = this.r;
-          } else if (closest == distTo.top) {
-            a2 = 0;
-            b2 = 1;
-            c2 = squareEdges.top - this.r;
-            moveSide.y = -this.r;
-          } else if (closest == distTo.bottom) {
-            a2 = 0;
-            b2 = 1;
-            c2 = squareEdges.bottom + this.r;
-            moveSide.y = this.r;
-          }
-
-          let intersection = {
-            x: (b1 * c2 - b2 * c1) / (a1 * b2 - a2 * b1) - (moveSide.x || 0),
-            y: -(a2 * c1 - a1 * c2) / (a1 * b2 - a2 * b1) - (moveSide.y || 0),
-          };
-
-          const m = -(intersection.x - this.x) / (intersection.y - this.y);
-          const b = intersection.y - m * intersection.x;
-
-          ctx.strokeStyle = "blue";
-          ctx.beginPath();
-          ctx.moveTo(this.x, this.y);
-          ctx.lineTo(this.x + this.vx * 100, this.y + this.vy * 100);
-          ctx.stroke();
-
-          ctx.strokeStyle = "green";
-          ctx.beginPath();
-          ctx.moveTo(0, 0 + b);
-          ctx.lineTo(cnv.width, cnv.width * m + b);
-          ctx.stroke();
-          ctx.strokeStyle = "black";
-
-          ctx.fillStyle = "red";
-          ctx.beginPath();
-          ctx.arc(intersection.x, intersection.y, 1, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.fillStyle = "black";
-
-          this.x -= this.vx;
-          this.y -= this.vy;
-        } else {
-          if (side === "left" || side === "right") this.vx *= -1;
-          else this.vy *= -1;
+          return direction === Math.sign(circle["v" + axis]) ? dist : Infinity;
         }
+
+        const closest = Math.min(...Object.values(distTo));
+
+        const a1 = this.y - lastPos.y;
+        const b1 = this.x - lastPos.x;
+        const c1 = this.x * lastPos.y - lastPos.x * this.y;
+
+        let a2, b2, c2;
+
+        if (closest == distTo.left) {
+          a2 = -1;
+          b2 = 0;
+          c2 = squareEdges.left;
+        } else if (closest == distTo.right) {
+          a2 = -1;
+          b2 = 0;
+          c2 = squareEdges.right;
+        } else if (closest == distTo.top) {
+          a2 = 0;
+          b2 = 1;
+          c2 = squareEdges.top;
+        } else if (closest == distTo.bottom) {
+          a2 = 0;
+          b2 = 1;
+          c2 = squareEdges.bottom;
+        }
+
+        let intersection = {
+          x: (b1 * c2 - b2 * c1) / (a1 * b2 - a2 * b1),
+          y: -(a2 * c1 - a1 * c2) / (a1 * b2 - a2 * b1),
+        };
+
+        const m = -(intersection.x - this.x) / (intersection.y - this.y);
+        const b = intersection.y - m * intersection.x;
+
+        ctx.strokeStyle = "blue";
+        ctx.beginPath();
+        ctx.moveTo(this.x, this.y);
+        ctx.lineTo(this.x + this.vx * 1000, this.y + this.vy * 1000);
+        ctx.stroke();
+
+        ctx.strokeStyle = "green";
+        ctx.beginPath();
+        ctx.moveTo(0, 0 + b);
+        ctx.lineTo(cnv.width, cnv.width * m + b);
+        ctx.stroke();
+        ctx.strokeStyle = "black";
+
+        ctx.fillStyle = "red";
+        ctx.beginPath();
+        ctx.arc(intersection.x, intersection.y, 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "black";
+
+        ctx.beginPath();
+        ctx.moveTo(this.x, square.y + square.size + this.r);
+        ctx.lineTo(square.x + square.size, square.y + square.size + this.r);
+        ctx.stroke();
+
+        this.x -= this.vx;
+        this.y -= this.vy;
+        // } else {
+        //   if (side === "left" || side === "right") this.vx *= -1;
+        //   else this.vy *= -1;
+        // }
       }
     }
   }
@@ -263,7 +269,7 @@ class Square {
     this.y = y;
     this.health = objects.balls.length;
 
-    this.size = 50;
+    this.size = 200;
     this.fontSize = this.size * 0.6;
 
     objects.squares.push(this);
@@ -280,11 +286,7 @@ class Square {
   }
 }
 
-// for (let n = 0; n < 10; n++) {
-//   objects.balls.push(null);
-// }
-
-new Square(marker.x - 100, marker.y - 100);
+new Square(marker.x - 5, marker.y - 300);
 
 document.addEventListener("mousemove", (e) => {
   const rect = canvas.getBoundingClientRect();
