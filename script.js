@@ -32,9 +32,7 @@ let marker = {
    shoot() {
       if ((frameCount - this.frameShot) % this.shootDelay && frameCount - this.frameShot) return;
 
-      const flipped = ((this.angle + 2 * Math.PI) % (2 * Math.PI)) - Math.PI;
-      new Ball(-2.7378, this.ballIndex);
-      // new Ball(flipped, this.ballIndex);
+      new Ball(this.angle + Math.PI, this.ballIndex);
 
       this.ballIndex++;
       if (this.ballIndex >= objects.balls.length) this.shooting = false;
@@ -91,7 +89,7 @@ class Ball {
       this.y = marker.y;
       this.vx = 0;
       this.vy = 0;
-      this.speed = 2;
+      this.speed = 10;
       this.r = 90;
 
       this.setVelocity(angle);
@@ -111,10 +109,8 @@ class Ball {
    }
 
    setVelocity(angle) {
-      this.angle = angle;
-
-      this.vx = this.speed * Math.cos(this.angle);
-      this.vy = this.speed * Math.sin(this.angle);
+      this.vx = this.speed * Math.cos(angle);
+      this.vy = this.speed * Math.sin(angle);
    }
 
    move() {
@@ -185,40 +181,56 @@ class Ball {
 
                const sideArray = side.split('-');
 
-               const horizontal = squareEdges[sideArray[1]];
-               const vertical = squareEdges[sideArray[0]];
+               const horizontal = squareEdges[sideArray[0]];
+               const vertical = squareEdges[sideArray[1]];
 
                const m = (lastPos.y - this.y) / (lastPos.x - this.x);
                const c = this.y - this.x * m;
 
                const sign = Math.sign(lastPos.x - this.x);
 
-               const t =
-                  (horizontal +
-                     m * vertical -
-                     m * c +
-                     sign *
-                        Math.sqrt(
-                           -(m ** 2) * horizontal ** 2 +
-                              2 * m * horizontal * vertical -
-                              2 * m * horizontal * c +
-                              m ** 2 * this.r ** 2 +
-                              2 * vertical * c +
-                              this.r ** 2 -
-                              vertical ** 2 -
-                              c ** 2
-                        )) /
-                  (1 + m ** 2);
+               const numerator =
+                  vertical +
+                  m * horizontal -
+                  m * c +
+                  sign *
+                     Math.sqrt(
+                        -(m ** 2) * vertical ** 2 +
+                           2 * m * vertical * horizontal -
+                           2 * m * c * vertical +
+                           m ** 2 * this.r ** 2 +
+                           2 * c * horizontal +
+                           this.r ** 2 -
+                           c ** 2 -
+                           horizontal ** 2
+                     );
+               const denominator = 1 + m ** 2;
+               const t = numerator / denominator;
 
-               // this.x = t;
-               // this.y = m * t + c;
+               this.x = t;
+               this.y = m * t + c;
 
-               const normal = (vertical - this.y) / (horizontal - this.x);
+               const normalAngle = Math.atan((horizontal - this.y) / (vertical - this.x));
+               const incidenceAngle = Math.atan(m) - normalAngle;
+               const reflectionAngle = normalAngle - incidenceAngle;
 
-               const incidence = Math.atan((m - normal) / (1 + m * normal));
+               this.setVelocity(reflectionAngle);
 
-               console.log(m, normal, incidence, Math.atan(normal) - incidence);
-               this.setVelocity(Math.atan(normal) - incidence);
+               // console.log(this.r);
+               // console.log(this.angle);
+               // console.log(horizontal);
+               // console.log(vertical);
+               // console.log(m);
+               // console.log(c);
+               // console.log(sign);
+               // console.log(t);
+               // console.log(this.x);
+               // console.log(this.y);
+               // console.log(normalAngle);
+               // console.log(incidenceAngle);
+               // console.log(reflectedAngle);
+
+               // this.y = 5000;
 
                // const distTo = {
                //    left: getDist(squareEdges.left, this, 'x', 1),
@@ -327,7 +339,7 @@ class Square {
    }
 }
 
-new Square(marker.x - 5, marker.y - 300);
+new Square(marker.x - 5, marker.y - 500);
 
 document.addEventListener('mousemove', (e) => {
    const rect = canvas.getBoundingClientRect();
