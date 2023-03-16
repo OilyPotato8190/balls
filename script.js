@@ -139,56 +139,66 @@ class Ball {
             bottom: square.y + square.size,
          };
 
-         let gap = {
+         let dist = {
             x: 0,
             y: 0,
          };
 
          let side;
 
+         // Find distance between the circle and the closest edge, also determine which side of the square the circle is on
          if (this.x < squareEdges.left) {
-            gap.x = this.x - squareEdges.left;
+            dist.x = this.x - squareEdges.left;
             side = 'left';
          } else if (this.x > squareEdges.right) {
-            gap.x = this.x - squareEdges.right;
+            dist.x = this.x - squareEdges.right;
             side = 'right';
          }
 
          if (this.y < squareEdges.top) {
-            gap.y = this.y - squareEdges.top;
+            dist.y = this.y - squareEdges.top;
 
             if (side === 'left') side = 'top-left';
             else if (side === 'right') side = 'top-right';
             else side = 'top';
          } else if (this.y > squareEdges.bottom) {
-            gap.y = this.y - squareEdges.bottom;
+            dist.y = this.y - squareEdges.bottom;
 
             if (side === 'left') side = 'bottom-left';
             else if (side === 'right') side = 'bottom-right';
             else side = 'bottom';
          }
 
-         const dist = Math.sqrt(gap.x ** 2 + gap.y ** 2);
+         const totalDist = Math.sqrt(gap.x ** 2 + gap.y ** 2);
 
-         if (dist < this.r) {
+         if (totalDist < this.r) {
             // square.health--;
 
+            // Checks if the circle has hit one of the corners
             if (side === 'top-left' || side === 'top-right' || side === 'bottom-left' || side === 'bottom-right') {
                const lastPos = {
                   x: this.x - this.vx,
                   y: this.y - this.vy,
                };
 
+               // Define the sides that make up the corner the ball hit as lines, x = vertical and y = horizontal
                const sideArray = side.split('-');
-
                const horizontal = squareEdges[sideArray[0]];
                const vertical = squareEdges[sideArray[1]];
 
+               // Define the path of the ball by the line equation y = mx + c
                const m = (lastPos.y - this.y) / (lastPos.x - this.x);
                const c = this.y - this.x * m;
 
+               // Get the angle of the ball's path
+               const angle = Math.atan(m);
+
+               // Determines which solution of the quadratic to use, depending on whether the ball is moving to the left or the right
                const sign = Math.sign(lastPos.x - this.x);
 
+               // The quadratic equation (vertical - t)**2 + (horizontal - mt + c)**2 = r**2 solved for t in order to find
+               // the x and y of the center of the circle (x - h)**2 + (y - k**2) = r**2 moving along the path y = mx + c
+               // which also intersects with the corner of the square (vertical, horizontal)
                const numerator =
                   vertical +
                   m * horizontal -
@@ -210,16 +220,19 @@ class Ball {
                this.x = t;
                this.y = m * t + c;
 
+               // Normal to the tangent line of the circle touching the point (vertical, horizontal)
                const normalAngle = Math.atan((horizontal - this.y) / (vertical - this.x));
-               const incidenceAngle = Math.atan(m) - normalAngle;
+
+               // Using the law of reflection (angle of reflection = angle of incidence) find the angle of the circle's new path
+               const incidenceAngle = angle - normalAngle;
                const reflectionAngle = normalAngle - incidenceAngle;
 
                this.setVelocity(reflectionAngle);
 
                // console.log(this.r);
-               // console.log(this.angle);
                // console.log(horizontal);
                // console.log(vertical);
+               // console.log(angle);
                // console.log(m);
                // console.log(c);
                // console.log(sign);
@@ -228,85 +241,7 @@ class Ball {
                // console.log(this.y);
                // console.log(normalAngle);
                // console.log(incidenceAngle);
-               // console.log(reflectedAngle);
-
-               // this.y = 5000;
-
-               // const distTo = {
-               //    left: getDist(squareEdges.left, this, 'x', 1),
-               //    right: getDist(squareEdges.right, this, 'x', -1),
-               //    top: getDist(squareEdges.top, this, 'y', 1),
-               //    bottom: getDist(squareEdges.bottom, this, 'y', -1),
-               // };
-
-               // function getDist(squareEdge, circle, axis, direction) {
-               //    const dist = Math.abs((squareEdge - circle[axis]) / circle['v' + axis]);
-
-               //    return direction === Math.sign(circle['v' + axis]) ? dist : Infinity;
-               // }
-
-               // const closest = Math.min(...Object.values(distTo));
-
-               // const a1 = this.y - lastPos.y;
-               // const b1 = this.x - lastPos.x;
-               // const c1 = this.x * lastPos.y - lastPos.x * this.y;
-
-               // let a2, b2, c2;
-
-               // if (closest == distTo.left) {
-               //    a2 = -1;
-               //    b2 = 0;
-               //    c2 = squareEdges.left;
-               // } else if (closest == distTo.right) {
-               //    a2 = -1;
-               //    b2 = 0;
-               //    c2 = squareEdges.right;
-               // } else if (closest == distTo.top) {
-               //    a2 = 0;
-               //    b2 = 1;
-               //    c2 = squareEdges.top;
-               // } else if (closest == distTo.bottom) {
-               //    a2 = 0;
-               //    b2 = 1;
-               //    c2 = squareEdges.bottom;
-               // }
-
-               // let intersection = {
-               //    x: (b1 * c2 - b2 * c1) / (a1 * b2 - a2 * b1),
-               //    y: -(a2 * c1 - a1 * c2) / (a1 * b2 - a2 * b1),
-               // };
-
-               // ctx.strokeStyle = 'blue';
-               // ctx.beginPath();
-               // ctx.moveTo(this.x, this.y);
-               // ctx.lineTo(this.x + this.vx * 1000, this.y + this.vy * 1000);
-               // ctx.stroke();
-
-               // // ctx.strokeStyle = 'green';
-               // // ctx.beginPath();
-               // // ctx.moveTo(0, 0 + b);
-               // // ctx.lineTo(cnv.width, cnv.width * m + b);
-               // // ctx.stroke();
-               // ctx.strokeStyle = 'black';
-
-               // ctx.fillStyle = 'red';
-               // ctx.beginPath();
-               // ctx.arc(intersection.x, intersection.y, 2, 0, Math.PI * 2);
-               // ctx.fill();
-               // ctx.fillStyle = 'black';
-
-               // ctx.beginPath();
-               // ctx.moveTo(0, square.y + square.size);
-               // ctx.lineTo(cnv.width, square.y + square.size);
-               // ctx.stroke();
-
-               // ctx.beginPath();
-               // ctx.moveTo(this.x, this.y);
-               // ctx.lineTo(square.x + square.size / 2, square.y + square.size / 2);
-               // ctx.stroke();
-
-               //  this.vx -= this.vx;
-               //  this.vy -= this.vy;
+               // console.log(reflectionAngle);
             } else {
                if (side === 'left' || side === 'right') this.vx *= -1;
                else this.vy *= -1;
