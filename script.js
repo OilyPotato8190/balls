@@ -6,20 +6,24 @@ cnv.height = window.innerHeight - 40;
 
 let mouse = {};
 let objects = {
-   balls: [null],
+   balls: [],
    squares: [],
 };
+
+for (let n = 0; n < 1; n++) {
+   objects.balls.push(null);
+}
 
 let marker = {
    x: cnv.width / 2,
    y: cnv.height * 0.9,
-   r: 7,
+   r: 50,
    shooting: false,
    draw: true,
    angle: 0,
    frameShot: 0,
    ballIndex: 0,
-   shootDelay: 5,
+   shootDelay: 3,
 
    draw() {
       if (this.shooting) this.shoot();
@@ -31,7 +35,6 @@ let marker = {
 
    shoot() {
       if ((frameCount - this.frameShot) % this.shootDelay && frameCount - this.frameShot) return;
-
       new Ball(this.angle + Math.PI, this.ballIndex);
 
       this.ballIndex++;
@@ -89,22 +92,21 @@ class Ball {
       this.y = marker.y;
       this.vx = 0;
       this.vy = 0;
-      this.speed = 10;
-      this.r = 90;
+      this.speed = 70;
+      this.r = marker.r;
 
       this.setVelocity(angle);
       objects.balls[this.index] = this;
    }
 
    draw() {
-      this.move();
-      this.checkCollision();
+      if (!(frameCount % 50)) {
+         this.move();
+         this.checkCollision();
+      }
 
       ctx.beginPath();
       ctx.arc(this.x, this.y, this.r, 0, 2 * Math.PI);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.arc(this.x, this.y, 1, 0, 2 * Math.PI);
       ctx.fill();
    }
 
@@ -119,14 +121,26 @@ class Ball {
    }
 
    checkCollision() {
-      if (this.x + this.r > cnv.width || this.x - this.r < 0) {
+      if (this.x + this.r > cnv.width) {
          this.vx *= -1;
+         this.x = cnv.width - this.r;
+      } else if (this.x - this.r < 0) {
+         this.vx *= -1;
+         this.x = 0 + this.r;
       }
+
+      // if (this.y - this.r < 0) {
+      //    this.vy *= -1;
+      // } else if (this.y - this.r > cnv.height) {
+      //    objects.balls[this.index] = null;
+      // }
 
       if (this.y - this.r < 0) {
          this.vy *= -1;
-      } else if (this.y - this.r > cnv.height) {
-         objects.balls[this.index] = null;
+         this.y = 0 + this.r;
+      } else if (this.y + this.r > cnv.height) {
+         this.vy *= -1;
+         this.y = cnv.height - this.r;
       }
 
       for (let i = 0; i < objects.squares.length; i++) {
@@ -144,75 +158,72 @@ class Ball {
             y: 0,
          };
 
-         let side;
+         let dist1 = {
+            left: (this.x - this.vx - squareEdges.left) / -this.vx,
+            right: (this.x - this.vx - squareEdges.right) / -this.vx,
+            top: (this.y - this.vy - squareEdges.top) / -this.vy,
+            bottom: (this.y - this.vy - squareEdges.bottom) / -this.vy,
+            // topLeft: Math.sqrt()
+         };
 
-         // Find distance between the circle and the closest edge, also determine which side of the square the circle is on
-         if (this.x < squareEdges.left) {
-            dist.x = this.x - squareEdges.left;
-            side = 'left';
-         } else if (this.x > squareEdges.right) {
-            dist.x = this.x - squareEdges.right;
-            side = 'right';
-         }
+         console.log(dist1);
 
+         let side = {};
+
+         // Find distance between the ball and the closest edge, also determine which side of the square the ball is on
          if (this.y < squareEdges.top) {
             dist.y = this.y - squareEdges.top;
-
-            if (side === 'left') side = 'top-left';
-            else if (side === 'right') side = 'top-right';
-            else side = 'top';
+            side.y = 'top';
          } else if (this.y > squareEdges.bottom) {
             dist.y = this.y - squareEdges.bottom;
-
-            if (side === 'left') side = 'bottom-left';
-            else if (side === 'right') side = 'bottom-right';
-            else side = 'bottom';
+            side.y = 'bottom';
          }
 
-         const totalDist = Math.sqrt(gap.x ** 2 + gap.y ** 2);
+         if (this.x < squareEdges.left) {
+            dist.x = this.x - squareEdges.left;
+            side.x = 'left';
+         } else if (this.x > squareEdges.right) {
+            dist.x = this.x - squareEdges.right;
+            side.x = 'right';
+         }
+
+         const totalDist = Math.sqrt(dist.x ** 2 + dist.y ** 2);
 
          if (totalDist < this.r) {
             // square.health--;
+            // Checks if the ball has hit one of the corners
+            if (side.x && side.y) {
+               console.log(dist1);
+               // Corner of the square the ball will hit
+               const corner = { x: squareEdges[side.x], y: squareEdges[side.y] };
 
-            // Checks if the circle has hit one of the corners
-            if (side === 'top-left' || side === 'top-right' || side === 'bottom-left' || side === 'bottom-right') {
-               const lastPos = {
-                  x: this.x - this.vx,
-                  y: this.y - this.vy,
-               };
-
-               // Define the sides that make up the corner the ball hit as lines, x = vertical and y = horizontal
-               const sideArray = side.split('-');
-               const horizontal = squareEdges[sideArray[0]];
-               const vertical = squareEdges[sideArray[1]];
-
-               // Define the path of the ball by the line equation y = mx + c
-               const m = (lastPos.y - this.y) / (lastPos.x - this.x);
+               // Define the path of the ball with the slope-intercept form of linear equation y = mx + c
+               const m = this.vy / this.vx;
                const c = this.y - this.x * m;
 
                // Get the angle of the ball's path
-               const angle = Math.atan(m);
+               const angle = this.vx < 0 ? Math.atan(m) + Math.PI : Math.atan(m);
 
                // Determines which solution of the quadratic to use, depending on whether the ball is moving to the left or the right
-               const sign = Math.sign(lastPos.x - this.x);
+               const sign = Math.sign(-this.vx);
 
-               // The quadratic equation (vertical - t)**2 + (horizontal - mt + c)**2 = r**2 solved for t in order to find
-               // the x and y of the center of the circle (x - h)**2 + (y - k**2) = r**2 moving along the path y = mx + c
-               // which also intersects with the corner of the square (vertical, horizontal)
+               // The quadratic equation (corner.x - t)**2 + (corner.y - mt + c)**2 = r**2 solved for t in order to find
+               // the x and y of the center of the ball (x - h)**2 + (y - k**2) = r**2 moving along the path y = mx + c
+               // which also intersects with the corner of the square
                const numerator =
-                  vertical +
-                  m * horizontal -
+                  corner.x +
+                  m * corner.y -
                   m * c +
                   sign *
                      Math.sqrt(
-                        -(m ** 2) * vertical ** 2 +
-                           2 * m * vertical * horizontal -
-                           2 * m * c * vertical +
+                        -(m ** 2) * corner.x ** 2 +
+                           2 * m * corner.x * corner.y -
+                           2 * m * c * corner.x +
                            m ** 2 * this.r ** 2 +
-                           2 * c * horizontal +
+                           2 * c * corner.y +
                            this.r ** 2 -
                            c ** 2 -
-                           horizontal ** 2
+                           corner.y ** 2
                      );
                const denominator = 1 + m ** 2;
                const t = numerator / denominator;
@@ -220,31 +231,31 @@ class Ball {
                this.x = t;
                this.y = m * t + c;
 
-               // Normal to the tangent line of the circle touching the point (vertical, horizontal)
-               const normalAngle = Math.atan((horizontal - this.y) / (vertical - this.x));
+               // Normal to the tangent line of the ball going through the corner of the square
+               const normalAngle = Math.atan((corner.y - this.y) / (corner.x - this.x));
 
-               // Using the law of reflection (angle of reflection = angle of incidence) find the angle of the circle's new path
-               const incidenceAngle = angle - normalAngle;
+               // Using the law of reflection (angle of reflection = angle of incidence) find the angle of the ball's new path
+               const incidenceAngle = angle + Math.PI - normalAngle;
                const reflectionAngle = normalAngle - incidenceAngle;
 
                this.setVelocity(reflectionAngle);
-
-               // console.log(this.r);
-               // console.log(horizontal);
-               // console.log(vertical);
-               // console.log(angle);
-               // console.log(m);
-               // console.log(c);
-               // console.log(sign);
-               // console.log(t);
-               // console.log(this.x);
-               // console.log(this.y);
-               // console.log(normalAngle);
-               // console.log(incidenceAngle);
-               // console.log(reflectionAngle);
             } else {
-               if (side === 'left' || side === 'right') this.vx *= -1;
-               else this.vy *= -1;
+               // Bounce ball off of the side of the square
+               if (side.x === 'left') {
+                  this.vx *= -1;
+                  this.x = squareEdges.left - this.r;
+               } else if (side.x === 'right') {
+                  this.vx *= -1;
+                  this.x = squareEdges.right + this.r;
+               } else if (side.y == 'top') {
+                  this.vy *= -1;
+                  this.y = squareEdges.top - this.r;
+               } else if (side.y == 'bottom') {
+                  this.vy *= -1;
+                  this.y = squareEdges.bottom + this.r;
+               } else {
+                  throw new Error('nothing in side object');
+               }
             }
          }
       }
@@ -258,7 +269,7 @@ class Square {
       this.health = objects.balls.length;
 
       this.size = 200;
-      this.fontSize = this.size * 0.6;
+      this.fontSize = this.size / 2;
 
       objects.squares.push(this);
    }
@@ -274,7 +285,7 @@ class Square {
    }
 }
 
-new Square(marker.x - 5, marker.y - 500);
+new Square(marker.x - 400, marker.y - 200);
 
 document.addEventListener('mousemove', (e) => {
    const rect = canvas.getBoundingClientRect();
