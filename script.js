@@ -159,12 +159,35 @@ class Ball {
          };
 
          let dist1 = {
-            left: (this.x - this.vx - squareEdges.left) / -this.vx,
-            right: (this.x - this.vx - squareEdges.right) / -this.vx,
-            top: (this.y - this.vy - squareEdges.top) / -this.vy,
-            bottom: (this.y - this.vy - squareEdges.bottom) / -this.vy,
-            // topLeft: Math.sqrt()
+            left: (squareEdges.left - (this.x - this.vx)) / this.vx,
+            right: (squareEdges.right - (this.x - this.vx)) / this.vx,
+            top: (squareEdges.top - (this.y - this.vy)) / this.vy,
+            bottom: (squareEdges.bottom - (this.y - this.vy)) / this.vy,
          };
+
+         console.log(
+            dist1.right,
+            dist1.top,
+            Math.abs(dist1.right - dist1.top),
+            Math.abs(this.r / this.vy),
+            Math.abs(dist1.right - dist1.top) < Math.abs(this.r / this.vy) ? true : false
+         );
+
+         for (const side in dist1) {
+            if (dist1[side] < 0) dist1[side] = Infinity;
+         }
+
+         if (this.vx > 0) {
+            dist1.right = Infinity;
+         } else {
+            dist1.left = Infinity;
+         }
+
+         if (this.vy > 0) {
+            dist1.bottom = Infinity;
+         } else {
+            dist1.top = Infinity;
+         }
 
          console.log(dist1);
 
@@ -239,6 +262,8 @@ class Ball {
                const reflectionAngle = normalAngle - incidenceAngle;
 
                this.setVelocity(reflectionAngle);
+
+               objects.balls = [];
             } else {
                // Bounce ball off of the side of the square
                if (side.x === 'left') {
