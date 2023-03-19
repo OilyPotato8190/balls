@@ -16,8 +16,8 @@ for (let n = 0; n < 1; n++) {
 
 let marker = {
    x: cnv.width / 2,
-   y: cnv.height * 0.9,
-   r: 50,
+   y: cnv.height * 0.5,
+   r: 100,
    shooting: false,
    draw: true,
    angle: 0,
@@ -84,6 +84,8 @@ let aim = {
    },
 };
 
+let log = true;
+
 class Ball {
    constructor(angle, index) {
       this.index = index;
@@ -92,7 +94,7 @@ class Ball {
       this.y = marker.y;
       this.vx = 0;
       this.vy = 0;
-      this.speed = 70;
+      this.speed = 5;
       this.r = marker.r;
 
       this.setVelocity(angle);
@@ -100,14 +102,20 @@ class Ball {
    }
 
    draw() {
-      if (!(frameCount % 50)) {
-         this.move();
-         this.checkCollision();
-      }
+      // if (!(frameCount % 50)) {
+      this.move();
+      this.checkCollision();
+      // }
 
       ctx.beginPath();
       ctx.arc(this.x, this.y, this.r, 0, 2 * Math.PI);
       ctx.fill();
+
+      ctx.fillStyle = 'white';
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, 5, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.fillStyle = 'black';
    }
 
    setVelocity(angle) {
@@ -144,6 +152,8 @@ class Ball {
       }
 
       for (let i = 0; i < objects.squares.length; i++) {
+         if (!this.vx && !this.vy) return;
+
          const square = objects.squares[i];
 
          const squareEdges = {
@@ -159,37 +169,67 @@ class Ball {
          };
 
          let dist1 = {
-            left: (squareEdges.left - (this.x - this.vx)) / this.vx,
-            right: (squareEdges.right - (this.x - this.vx)) / this.vx,
-            top: (squareEdges.top - (this.y - this.vy)) / this.vy,
-            bottom: (squareEdges.bottom - (this.y - this.vy)) / this.vy,
+            left: (squareEdges.left - this.x) / this.vx,
+            right: (squareEdges.right - this.x) / this.vx,
+            top: (squareEdges.top - this.y) / this.vy,
+            bottom: (squareEdges.bottom - this.y) / this.vy,
          };
 
-         console.log(
-            dist1.right,
-            dist1.top,
-            Math.abs(dist1.right - dist1.top),
-            Math.abs(this.r / this.vy),
-            Math.abs(dist1.right - dist1.top) < Math.abs(this.r / this.vy) ? true : false
-         );
+         // // Find which side the ball will hit
+         // if (this.vx > 0) {
+         //    delete dist1.right;
+         // } else {
+         //    delete dist1.left;
+         // }
 
-         for (const side in dist1) {
-            if (dist1[side] < 0) dist1[side] = Infinity;
+         // if (this.vy > 0) {
+         //    delete dist1.bottom;
+         // } else {
+         //    delete dist1.top;
+         // }
+
+         // for (const side in dist1) {
+         //    if (dist1[side] < 0) delete dist1[side];
+         // }
+
+         // const closest = Object.keys(dist1)[0];
+
+         let test1 = {};
+         let test2 = {};
+
+         const rTimeY = Math.abs(this.r / this.vy);
+
+         const tl = dist1.top - dist1.left;
+         const lt = dist1.left - dist1.top;
+         const tr = dist1.top - dist1.right;
+         const rt = dist1.right - dist1.top;
+         const bl = dist1.bottom - dist1.left;
+         const lb = dist1.left - dist1.bottom;
+         const br = dist1.bottom - dist1.right;
+         const rb = dist1.right - dist1.bottom;
+
+         test1.tl = tl + ', ' + rTimeY;
+         test1.lt = lt + ', ' + rTimeY;
+         test1.tr = tr + ', ' + rTimeY;
+         test1.rt = rt + ', ' + rTimeY;
+         test1.bl = bl + ', ' + rTimeY;
+         test1.lb = lb + ', ' + rTimeY;
+         test1.br = br + ', ' + rTimeY;
+         test1.rb = rb + ', ' + rTimeY;
+
+         test2.tl = tl < rTimeY;
+         test2.lt = lt < rTimeY;
+         test2.tr = tr < rTimeY;
+         test2.rt = rt < rTimeY;
+         test2.bl = bl < rTimeY;
+         test2.lb = lb < rTimeY;
+         test2.br = br < rTimeY;
+         test2.rb = rb < rTimeY;
+
+         if (log) {
+            console.log(test1, test2);
+            log = false;
          }
-
-         if (this.vx > 0) {
-            dist1.right = Infinity;
-         } else {
-            dist1.left = Infinity;
-         }
-
-         if (this.vy > 0) {
-            dist1.bottom = Infinity;
-         } else {
-            dist1.top = Infinity;
-         }
-
-         console.log(dist1);
 
          let side = {};
 
@@ -214,9 +254,9 @@ class Ball {
 
          if (totalDist < this.r) {
             // square.health--;
+
             // Checks if the ball has hit one of the corners
             if (side.x && side.y) {
-               console.log(dist1);
                // Corner of the square the ball will hit
                const corner = { x: squareEdges[side.x], y: squareEdges[side.y] };
 
@@ -262,8 +302,6 @@ class Ball {
                const reflectionAngle = normalAngle - incidenceAngle;
 
                this.setVelocity(reflectionAngle);
-
-               objects.balls = [];
             } else {
                // Bounce ball off of the side of the square
                if (side.x === 'left') {
@@ -282,6 +320,8 @@ class Ball {
                   throw new Error('nothing in side object');
                }
             }
+            this.vx = 0;
+            this.vy = 0;
          }
       }
    }
@@ -310,7 +350,7 @@ class Square {
    }
 }
 
-new Square(marker.x - 400, marker.y - 200);
+new Square(marker.x - 400, marker.y - 500);
 
 document.addEventListener('mousemove', (e) => {
    const rect = canvas.getBoundingClientRect();
