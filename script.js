@@ -16,8 +16,8 @@ for (let n = 0; n < 1; n++) {
 
 let marker = {
   x: cnv.width / 2,
-  y: cnv.height * 0.5,
-  r: 100,
+  y: cnv.height * 0.9,
+  r: 25,
   shooting: false,
   draw: true,
   angle: 0,
@@ -92,7 +92,7 @@ class Ball {
     this.y = marker.y;
     this.vx = 0;
     this.vy = 0;
-    this.speed = 5;
+    this.speed = 10;
     this.r = marker.r;
 
     this.setVelocity(angle);
@@ -155,38 +155,81 @@ class Ball {
       const square = objects.squares[i];
 
       const squareEdges = {
-        left: square.x,
-        right: square.x + square.size,
-        top: square.y,
-        bottom: square.y + square.size,
+        l: square.x,
+        r: square.x + square.size,
+        t: square.y,
+        b: square.y + square.size,
       };
 
-      const sections = {};
+      function colliding() {
+        if (this.x > squareEdges.l && this.x < squareEdges.r && this.y > squareEdges.t && this.y < squareEdges.b) {
+          return true;
+        }
 
-      sections.l.dist = squareEdges.left - this.x;
-      sections.r.dist = squareEdges.right - this.x;
-      sections.t.dist = squareEdges.top - this.y;
-      sections.b.dist = squareEdges.bottom - this.y;
+        let dist = {
+          x: 0,
+          y: 0,
+        };
 
-      let discriminants = {
-        tl: getDiscriminant(squareEdges.left, squareEdges.top),
-        tr: getDiscriminant(squareEdges.right, squareEdges.top),
-        bl: getDiscriminant(squareEdges.left, squareEdges.bottom),
-        br: getDiscriminant(squareEdges.right, squareEdges.bottom),
-      };
+        if (this.x < squareEdges.l) {
+          dist.x = squareEdges.l - this.x;
+        } else if (this.x > squareEdges.r) {
+          dist.x = squareEdges.r - this.x;
+        }
 
-      function getDiscriminant(cornerX, cornerY) {
-        return (
-          -(m ** 2) * cornerX ** 2 +
-          2 * m * cornerX * cornerY -
-          2 * m * c * cornerX +
-          m ** 2 * this.r ** 2 +
-          2 * c * cornerY +
-          this.r ** 2 -
-          c ** 2 -
-          cornerY ** 2
-        );
+        if (this.y < squareEdges.t) {
+          dist.y = squareEdges.t - this.y;
+        } else if (this.y > squareEdges.b) {
+          dist.y = squareEdges.b - this.y;
+        }
+
+        const totalDist = Math.sqrt(dist.x ** 2 + dist.y ** 2);
+
+        if (totalDist < this.r) return true;
       }
+
+      function hitWhat() {
+        const lastPos = {
+          x: this.x - this.vx,
+          y: this.y - this.vy,
+        };
+
+        const timeToHit = {
+          l: (squareEdges.l - lastPos.x) / this.vx,
+          r: (squareEdges.r - lastPos.x) / this.vx,
+          t: (squareEdges.t - lastPos.y) / this.vy,
+          b: (squareEdges.b - lastPos.y) / this.vy,
+        };
+
+        const smallest = Object.keys(timeToHit)[0];
+        console.log(smallest);
+      }
+
+      if (colliding.call(this)) {
+        hitWhat.call(this);
+        this.vx = 0;
+        this.vy = 0;
+      }
+
+      // let discriminants = {
+      //   tl: getDiscriminant(squareEdges.l, squareEdges.t),
+      //   tr: getDiscriminant(squareEdges.r, squareEdges.t),
+      //   bl: getDiscriminant(squareEdges.l, squareEdges.b),
+      //   br: getDiscriminant(squareEdges.r, squareEdges.b),
+      // };
+
+      // function getDiscriminant(cornerX, cornerY) {
+      //   return (
+      //     -(m ** 2) * cornerX ** 2 +
+      //     2 * m * cornerX * cornerY -
+      //     2 * m * c * cornerX +
+      //     m ** 2 * this.r ** 2 +
+      //     2 * c * cornerY +
+      //     this.r ** 2 -
+      //     c ** 2 -
+      //     cornerY ** 2
+      //   );
+      // }
 
       // // Find which side the ball will hit
       // if (this.vx > 0) {
@@ -207,79 +250,79 @@ class Ball {
 
       // const closest = Object.keys(dist1)[0];
 
-      let side = {};
+      // let side = {};
 
-      // Find distance between the ball and the closest edge, also determine which side of the square the ball is on
-      if (this.y < squareEdges.top) {
-        dist.y = this.y - squareEdges.top;
-        side.y = "top";
-      } else if (this.y > squareEdges.bottom) {
-        dist.y = this.y - squareEdges.bottom;
-        side.y = "bottom";
-      }
+      // // Find distance between the ball and the closest edge, also determine which side of the square the ball is on
+      // if (this.y < squareEdges.t) {
+      //   dist.y = this.y - squareEdges.t;
+      //   side.y = "top";
+      // } else if (this.y > squareEdges.b) {
+      //   dist.y = this.y - squareEdges.b;
+      //   side.y = "bottom";
+      // }
 
-      if (this.x < squareEdges.left) {
-        dist.x = this.x - squareEdges.left;
-        side.x = "left";
-      } else if (this.x > squareEdges.right) {
-        dist.x = this.x - squareEdges.right;
-        side.x = "right";
-      }
+      // if (this.x < squareEdges.l) {
+      //   dist.x = this.x - squareEdges.l;
+      //   side.x = "left";
+      // } else if (this.x > squareEdges.r) {
+      //   dist.x = this.x - squareEdges.r;
+      //   side.x = "right";
+      // }
 
-      const totalDist = Math.sqrt(dist.x ** 2 + dist.y ** 2);
+      // const totalDist = Math.sqrt(dist.x ** 2 + dist.y ** 2);
 
-      if (totalDist < this.r) {
-        // square.health--;
+      // if (totalDist < this.r) {
+      //   // square.health--;
 
-        function hitCorner(cornerX, cornerY, discriminant) {
-          // Corner of the square the ball will hit
-          const corner = { x: squareEdges[side.x], y: squareEdges[side.y] };
+      //   function hitCorner(cornerX, cornerY, discriminant) {
+      //     // Corner of the square the ball will hit
+      //     const corner = { x: squareEdges[side.x], y: squareEdges[side.y] };
 
-          // Define the path of the ball with the slope-intercept form of linear equation y = mx + c
-          const m = this.vy / this.vx;
-          const c = this.y - this.x * m;
+      //     // Define the path of the ball with the slope-intercept form of linear equation y = mx + c
+      //     const m = this.vy / this.vx;
+      //     const c = this.y - this.x * m;
 
-          // Get the angle of the ball's path
-          const angle = this.vx < 0 ? Math.atan(m) + Math.PI : Math.atan(m);
+      //     // Get the angle of the ball's path
+      //     const angle = this.vx < 0 ? Math.atan(m) + Math.PI : Math.atan(m);
 
-          // Determines which solution of the quadratic to use, depending on whether the ball is moving to the left or the right
-          const sign = Math.sign(-this.vx);
+      //     // Determines which solution of the quadratic to use, depending on whether the ball is moving to the left or the right
+      //     const sign = Math.sign(-this.vx);
 
-          // The quadratic equation (corner.x - t)**2 + (corner.y - mt + c)**2 = r**2 solved for t in order to find
-          // the x and y of the center of the ball (x - h)**2 + (y - k**2) = r**2 moving along the path y = mx + c
-          // which also intersects with the corner of the square
-          const numerator = corner.x + m * corner.y - m * c + sign * Math.sqrt(discriminant);
-          const denominator = 1 + m ** 2;
-          const t = numerator / denominator;
+      //     // The quadratic equation (corner.x - t)**2 + (corner.y - mt + c)**2 = r**2 solved for t in order to find
+      //     // the x and y of the center of the ball (x - h)**2 + (y - k**2) = r**2 moving along the path y = mx + c
+      //     // which also intersects with the corner of the square
+      //     const numerator = corner.x + m * corner.y - m * c + sign * Math.sqrt(discriminant);
+      //     const denominator = 1 + m ** 2;
+      //     const t = numerator / denominator;
 
-          this.x = t;
-          this.y = m * t + c;
+      //     this.x = t;
+      //     this.y = m * t + c;
 
-          // Normal to the tangent line of the ball going through the corner of the square
-          const normalAngle = Math.atan((corner.y - this.y) / (corner.x - this.x));
+      //     // Normal to the tangent line of the ball going through the corner of the square
+      //     const normalAngle = Math.atan((corner.y - this.y) / (corner.x - this.x));
 
-          // Using the law of reflection (angle of reflection = angle of incidence) find the angle of the ball's new path
-          const incidenceAngle = angle + Math.PI - normalAngle;
-          const reflectionAngle = normalAngle - incidenceAngle;
+      //     // Using the law of reflection (angle of reflection = angle of incidence) find the angle of the ball's new path
+      //     const incidenceAngle = angle + Math.PI - normalAngle;
+      //     const reflectionAngle = normalAngle - incidenceAngle;
 
-          this.setVelocity(reflectionAngle);
-        }
+      //     this.setVelocity(reflectionAngle);
+      //   }
 
-        // Bounce ball off of the side of the square
-        if (side.x === "left") {
-          this.vx *= -1;
-          this.x = squareEdges.left - this.r;
-        } else if (side.x === "right") {
-          this.vx *= -1;
-          this.x = squareEdges.right + this.r;
-        } else if (side.y == "top") {
-          this.vy *= -1;
-          this.y = squareEdges.top - this.r;
-        } else if (side.y == "bottom") {
-          this.vy *= -1;
-          this.y = squareEdges.bottom + this.r;
-        }
-      }
+      //   // Bounce ball off of the side of the square
+      //   if (side.x === "left") {
+      //     this.vx *= -1;
+      //     this.x = squareEdges.l - this.r;
+      //   } else if (side.x === "right") {
+      //     this.vx *= -1;
+      //     this.x = squareEdges.r + this.r;
+      //   } else if (side.y == "top") {
+      //     this.vy *= -1;
+      //     this.y = squareEdges.t - this.r;
+      //   } else if (side.y == "bottom") {
+      //     this.vy *= -1;
+      //     this.y = squareEdges.b + this.r;
+      //   }
+      // }
     }
   }
 }
@@ -290,7 +333,7 @@ class Square {
     this.y = y;
     this.health = objects.balls.length;
 
-    this.size = 200;
+    this.size = 100;
     this.fontSize = this.size / 2;
 
     objects.squares.push(this);
@@ -307,7 +350,7 @@ class Square {
   }
 }
 
-new Square(marker.x - 400, marker.y - 500);
+new Square(marker.x - 50, marker.y - 300);
 
 document.addEventListener("mousemove", (e) => {
   const rect = canvas.getBoundingClientRect();
