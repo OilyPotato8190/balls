@@ -211,6 +211,32 @@ class Ball {
         this.vy = 0;
       }
 
+      // Desmos results
+
+      // a = tan^-1(2)
+
+      // r = 1
+      // 0.236068
+
+      // r = 2
+      // 0.47213
+
+      // r = 3
+      // 0.708195
+
+      // 0.236068r
+
+      // r = 1
+
+      // m = 1
+      // 0.41421
+
+      // m = 2
+      // 0.236068
+
+      // m = 3
+      // 0.1622
+
       // let discriminants = {
       //   tl: getDiscriminant(squareEdges.l, squareEdges.t),
       //   tr: getDiscriminant(squareEdges.r, squareEdges.t),
@@ -288,7 +314,7 @@ class Ball {
       //     // Determines which solution of the quadratic to use, depending on whether the ball is moving to the left or the right
       //     const sign = Math.sign(-this.vx);
 
-      //     // The quadratic equation (corner.x - t)**2 + (corner.y - mt + c)**2 = r**2 solved for t in order to find
+      //     // The quadratic equation (corner.x - t)**2 + (corner.y - (mt + c))**2 = r**2 solved for t in order to find
       //     // the x and y of the center of the ball (x - h)**2 + (y - k**2) = r**2 moving along the path y = mx + c
       //     // which also intersects with the corner of the square
       //     const numerator = corner.x + m * corner.y - m * c + sign * Math.sqrt(discriminant);
