@@ -92,7 +92,7 @@ class Ball {
     this.y = marker.y;
     this.vx = 0;
     this.vy = 0;
-    this.speed = 10;
+    this.speed = 5;
     this.r = marker.r;
 
     this.setVelocity(angle);
@@ -104,7 +104,6 @@ class Ball {
     this.move();
     this.checkCollision();
     // }
-
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.r, 0, 2 * Math.PI);
     ctx.fill();
@@ -161,8 +160,13 @@ class Ball {
         b: square.y + square.size,
       };
 
-      function colliding() {
-        if (this.x > squareEdges.l && this.x < squareEdges.r && this.y > squareEdges.t && this.y < squareEdges.b) {
+      function colliding(thisBall) {
+        if (
+          thisBall.x > squareEdges.l &&
+          thisBall.x < squareEdges.r &&
+          thisBall.y > squareEdges.t &&
+          thisBall.y < squareEdges.b
+        ) {
           return true;
         }
 
@@ -171,79 +175,85 @@ class Ball {
           y: 0,
         };
 
-        if (this.x < squareEdges.l) {
-          dist.x = squareEdges.l - this.x;
-        } else if (this.x > squareEdges.r) {
-          dist.x = squareEdges.r - this.x;
+        if (thisBall.x < squareEdges.l) {
+          dist.x = squareEdges.l - thisBall.x;
+        } else if (thisBall.x > squareEdges.r) {
+          dist.x = squareEdges.r - thisBall.x;
         }
 
-        if (this.y < squareEdges.t) {
-          dist.y = squareEdges.t - this.y;
-        } else if (this.y > squareEdges.b) {
-          dist.y = squareEdges.b - this.y;
+        if (thisBall.y < squareEdges.t) {
+          dist.y = squareEdges.t - thisBall.y;
+        } else if (thisBall.y > squareEdges.b) {
+          dist.y = squareEdges.b - thisBall.y;
         }
 
         const totalDist = Math.sqrt(dist.x ** 2 + dist.y ** 2);
 
-        if (totalDist < this.r) return true;
+        if (totalDist < thisBall.r) return true;
       }
 
-      function hitWhat() {
+      function hitWhat(thisBall) {
         const lastPos = {
-          x: this.x - this.vx,
-          y: this.y - this.vy,
+          x: thisBall.x - thisBall.vx,
+          y: thisBall.y - thisBall.vy,
         };
 
-        let maybeHit = [];
+        let maybeHit = {
+          sides: [],
+          corners: [],
+        };
 
-        if (lastPos.x < squareEdges.l && this.vx > 0) {
-          maybeHit.push("l");
+        if (lastPos.x < squareEdges.l && thisBall.vx > 0) {
+          maybeHit.sides.push("l");
 
-          if (this.vy > 0) maybeHit.push("bl");
-          if (this.vy < 0) maybeHit.push("tl");
-        } else if (lastPos.x > squareEdges.r && this.vx < 0) {
-          maybeHit.push("r");
+          if (thisBall.vy > 0) maybeHit.corners.push("bl");
+          if (thisBall.vy < 0) maybeHit.corners.push("tl");
+        } else if (lastPos.x > squareEdges.r && thisBall.vx < 0) {
+          maybeHit.sides.push("r");
 
-          if (this.vy > 0) maybeHit.push("br");
-          if (this.vy < 0) maybeHit.push("tr");
+          if (thisBall.vy > 0) maybeHit.corners.push("br");
+          if (thisBall.vy < 0) maybeHit.corners.push("tr");
         }
 
-        if (lastPos.y < squareEdges.t && this.vy > 0) {
-          maybeHit.push("t");
+        if (lastPos.y < squareEdges.t && thisBall.vy > 0) {
+          maybeHit.sides.push("t");
 
-          if (this.vx > 0) maybeHit.push("tr");
-          if (this.vx < 0) maybeHit.push("tl");
-        } else if (lastPos.y > squareEdges.b && this.vy < 0) {
-          maybeHit.push("b");
+          if (thisBall.vx > 0) maybeHit.corners.push("tr");
+          if (thisBall.vx < 0) maybeHit.corners.push("tl");
+        } else if (lastPos.y > squareEdges.b && thisBall.vy < 0) {
+          maybeHit.sides.push("b");
 
-          if (this.vx > 0) maybeHit.push("br");
-          if (this.vx < 0) maybeHit.push("bl");
+          if (thisBall.vx > 0) maybeHit.corners.push("br");
+          if (thisBall.vx < 0) maybeHit.corners.push("bl");
         }
 
         // Define the path of the ball with the slope-intercept form of linear equation y = mx + c
-        const m = this.vy / this.vx;
-        const c = this.y - this.x * m;
+        const m = thisBall.vy / thisBall.vx;
+        const c = thisBall.y - thisBall.x * m;
 
-        for (let i = 0; i < maybeHit.length; i++) {
-          let element = maybeHit[i];
+        for (let i = 0; i < maybeHit.sides.length; i++) {
+          let side = maybeHit.sides[i];
 
-          if (element.length == 2) {
-            const discriminant = getDiscriminant(squareEdges[element[1]], squareEdges[element[0]], m, c, this.r);
-
-            console.log(discriminant);
-          } else {
+          if (checkSide(thisBall, side, lastPos)) {
+            console.log("hit " + side);
           }
+        }
+
+        for (let i = 0; i < maybeHit.corners.length; i++) {
+          let corner = maybeHit.corners[i];
+
+          checkCorner(squareEdges[corner[1]], squareEdges[corner[0]], m, c, thisBall.r);
         }
       }
 
-      if (colliding.call(this)) {
-        hitWhat.call(this);
+      if (colliding(this)) {
+        hitWhat(this);
         this.vx = 0;
         this.vy = 0;
       }
 
-      function getDiscriminant(cornerX, cornerY, m, c, r) {
-        return (
+      function checkCorner(cornerX, cornerY, m, c, r) {
+        const discriminant =
           -(m ** 2) * cornerX ** 2 +
           2 * m * cornerX * cornerY -
           2 * m * c * cornerX +
@@ -251,8 +261,26 @@ class Ball {
           2 * c * cornerY +
           r ** 2 -
           c ** 2 -
-          cornerY ** 2
-        );
+          cornerY ** 2;
+
+        // console.log(discriminant);
+      }
+
+      function checkSide(thisBall, side, lastPos) {
+        const axis1 = side === "l" || side === "r" ? "x" : "y";
+        const axis2 = axis1 === "x" ? "y" : "x";
+        const r = side === "l" || side == "t" ? -thisBall.r : thisBall.r;
+
+        const timeToSide = (squareEdges[side] - lastPos[axis1] + r) / thisBall["v" + axis1];
+        const valueAtSide = thisBall[axis2] + thisBall["v" + axis2] * timeToSide;
+
+        if (axis1 === "x" && squareEdges.t < valueAtSide && valueAtSide < squareEdges.b) {
+          return true;
+        } else if (squareEdges.l < valueAtSide && valueAtSide < squareEdges.r) {
+          return true;
+        } else {
+          return false;
+        }
       }
 
       // // Find which side the ball will hit
