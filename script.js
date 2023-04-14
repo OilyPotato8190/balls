@@ -16,7 +16,7 @@ for (let n = 0; n < 1; n++) {
 
 let marker = {
   x: cnv.width / 2,
-  y: cnv.height * 0.9,
+  y: cnv.height * 0.3,
   r: 25,
   shooting: false,
   draw: true,
@@ -92,7 +92,7 @@ class Ball {
     this.y = marker.y;
     this.vx = 0;
     this.vy = 0;
-    this.speed = 5;
+    this.speed = 20;
     this.r = marker.r;
 
     this.setVelocity(angle);
@@ -227,9 +227,12 @@ class Ball {
           if (thisBall.vx < 0) maybeHit.corners.push("bl");
         }
 
-        // Define the path of the ball with the slope-intercept form of linear equation y = mx + c
-        const m = thisBall.vy / thisBall.vx;
-        const c = thisBall.y - thisBall.x * m;
+        if (maybeHit.corners.length == 2) {
+          const corner = maybeHit.corners[1][0] + maybeHit.corners[0][1];
+          return console.log("hit " + corner);
+        }
+
+        console.log(maybeHit.corners);
 
         for (let i = 0; i < maybeHit.sides.length; i++) {
           let side = maybeHit.sides[i];
@@ -242,7 +245,9 @@ class Ball {
         for (let i = 0; i < maybeHit.corners.length; i++) {
           let corner = maybeHit.corners[i];
 
-          checkCorner(squareEdges[corner[1]], squareEdges[corner[0]], m, c, thisBall.r);
+          if (checkCorner(thisBall, corner, lastPos)) {
+            console.log("hit " + corner);
+          }
         }
       }
 
@@ -252,18 +257,28 @@ class Ball {
         this.vy = 0;
       }
 
-      function checkCorner(cornerX, cornerY, m, c, r) {
-        const discriminant =
-          -(m ** 2) * cornerX ** 2 +
-          2 * m * cornerX * cornerY -
-          2 * m * c * cornerX +
-          m ** 2 * r ** 2 +
-          2 * c * cornerY +
-          r ** 2 -
-          c ** 2 -
-          cornerY ** 2;
+      function checkCorner(thisBall, corner, lastPos) {
+        if (corner.startsWith("t")) {
+          const timeToSide = (squareEdges.t - lastPos.y - thisBall.r) / thisBall.vy;
+          const valueAtSide = thisBall.x + thisBall.vx * timeToSide;
 
-        // console.log(discriminant);
+          if (corner.endsWith("l")) console.log(valueAtSide, squareEdges.l);
+
+          if (corner.endsWith("l") && valueAtSide < squareEdges.l) {
+            return true;
+          } else if (corner.endsWith("r") && valueAtSide > squareEdges.r) {
+            return true;
+          }
+        } else {
+          const timeToSide = (squareEdges.b - lastPos.y + thisBall.r) / thisBall.vy;
+          const valueAtSide = thisBall.x + thisBall.vx * timeToSide;
+
+          if (corner.endsWith("l") && valueAtSide < squareEdges.l) {
+            return true;
+          } else if (corner.endsWith("r") && valueAtSide > squareEdges.r) {
+            return true;
+          }
+        }
       }
 
       function checkSide(thisBall, side, lastPos) {
@@ -272,7 +287,7 @@ class Ball {
         const r = side === "l" || side == "t" ? -thisBall.r : thisBall.r;
 
         const timeToSide = (squareEdges[side] - lastPos[axis1] + r) / thisBall["v" + axis1];
-        const valueAtSide = thisBall[axis2] + thisBall["v" + axis2] * timeToSide;
+        const valueAtSide = lastPos[axis2] + thisBall["v" + axis2] * timeToSide;
 
         if (axis1 === "x" && squareEdges.t < valueAtSide && valueAtSide < squareEdges.b) {
           return true;
@@ -326,9 +341,13 @@ class Ball {
       // if (totalDist < this.r) {
       //   // square.health--;
 
-      function hitCorner(cornerX, cornerY, discriminant) {
+      function hitCorner(cornerX, cornerY) {
         // Corner of the square the ball will hit
         const corner = { x: squareEdges[side.x], y: squareEdges[side.y] };
+
+        // Define the path of the ball with the slope-intercept form of linear equation y = mx + c
+        const m = thisBall.vy / thisBall.vx;
+        const c = thisBall.y - thisBall.x * m;
 
         // Get the angle of the ball's path
         const angle = this.vx < 0 ? Math.atan(m) + Math.PI : Math.atan(m);
@@ -339,6 +358,15 @@ class Ball {
         // The quadratic equation (corner.x - t)**2 + (corner.y - (mt + c))**2 = r**2 solved for t in order to find
         // the x and y of the center of the ball (x - h)**2 + (y - k**2) = r**2 moving along the path y = mx + c
         // which also intersects with the corner of the square
+        const discriminant =
+          -(m ** 2) * cornerX ** 2 +
+          2 * m * cornerX * cornerY -
+          2 * m * c * cornerX +
+          m ** 2 * r ** 2 +
+          2 * c * cornerY +
+          r ** 2 -
+          c ** 2 -
+          cornerY ** 2;
         const numerator = corner.x + m * corner.y - m * c + sign * Math.sqrt(discriminant);
         const denominator = 1 + m ** 2;
         const t = numerator / denominator;
@@ -381,7 +409,7 @@ class Square {
     this.y = y;
     this.health = objects.balls.length;
 
-    this.size = 100;
+    this.size = 50;
     this.fontSize = this.size / 2;
 
     objects.squares.push(this);
@@ -398,7 +426,7 @@ class Square {
   }
 }
 
-new Square(marker.x - 50, marker.y - 300);
+new Square(marker.x, marker.y + 300);
 
 document.addEventListener("mousemove", (e) => {
   const rect = canvas.getBoundingClientRect();
