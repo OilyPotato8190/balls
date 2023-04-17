@@ -258,27 +258,21 @@ class Ball {
       }
 
       function checkCorner(thisBall, corner, lastPos) {
-        if (corner.startsWith("t")) {
-          const timeToSide = (squareEdges.t - lastPos.y - thisBall.r) / thisBall.vy;
-          const valueAtSide = thisBall.x + thisBall.vx * timeToSide;
+        const side1 = squareEdges[corner[1]];
+        const sign1 = corner[1] === "l" ? -1 : 1;
 
-          if (corner.endsWith("l")) console.log(valueAtSide, squareEdges.l);
+        const side2 = squareEdges[corner[0]];
+        const sign2 = corner[0] === "t" ? -1 : 1;
 
-          if (corner.endsWith("l") && valueAtSide < squareEdges.l) {
-            return true;
-          } else if (corner.endsWith("r") && valueAtSide > squareEdges.r) {
-            return true;
-          }
-        } else {
-          const timeToSide = (squareEdges.b - lastPos.y + thisBall.r) / thisBall.vy;
-          const valueAtSide = thisBall.x + thisBall.vx * timeToSide;
+        const time1 = (side1 + sign1 * thisBall.r - lastPos.x) / thisBall.vx;
+        const value1 = thisBall.y + thisBall.vy * time1;
 
-          if (corner.endsWith("l") && valueAtSide < squareEdges.l) {
-            return true;
-          } else if (corner.endsWith("r") && valueAtSide > squareEdges.r) {
-            return true;
-          }
-        }
+        const time2 = (side2 + sign2 * thisBall.r - lastPos.y) / thisBall.vy;
+        const value2 = thisBall.x + thisBall.vx * time2;
+
+        console.log(time1);
+
+        if (value1 * sign1 > side2 * sign1 && value2 * sign2 > side1 * sign2) return true;
       }
 
       function checkSide(thisBall, side, lastPos) {
