@@ -335,47 +335,55 @@ class Ball {
       // if (totalDist < this.r) {
       //   // square.health--;
 
-      function hitCorner(cornerX, cornerY) {
-        // Corner of the square the ball will hit
-        const corner = { x: squareEdges[side.x], y: squareEdges[side.y] };
+      console.log(getT(370, 500, this));
+      console.log(`
+        a: ${this.vx}
+        b: ${this.vy}
+        x: 370
+        y: 500
+        p: ${this.x}
+        q: ${this.y}
+      `);
 
-        // Define the path of the ball with the slope-intercept form of linear equation y = mx + c
-        const m = thisBall.vy / thisBall.vx;
-        const c = thisBall.y - thisBall.x * m;
-
-        // Get the angle of the ball's path
-        const angle = this.vx < 0 ? Math.atan(m) + Math.PI : Math.atan(m);
-
+      function getT(cornerX, cornerY, thisBall) {
         // Determines which solution of the quadratic to use, depending on whether the ball is moving to the left or the right
-        const sign = Math.sign(-this.vx);
+        const sign = Math.sign(-thisBall.vx);
 
-        // The quadratic equation (corner.x - t)**2 + (corner.y - (mt + c))**2 = r**2 solved for t in order to find
-        // the x and y of the center of the ball (x - h)**2 + (y - k**2) = r**2 moving along the path y = mx + c
-        // which also intersects with the corner of the square
-        const discriminant =
-          -(m ** 2) * cornerX ** 2 +
-          2 * m * cornerX * cornerY -
-          2 * m * c * cornerX +
-          m ** 2 * r ** 2 +
-          2 * c * cornerY +
-          r ** 2 -
-          c ** 2 -
-          cornerY ** 2;
-        const numerator = corner.x + m * corner.y - m * c + sign * Math.sqrt(discriminant);
-        const denominator = 1 + m ** 2;
+        const a = thisBall.vx ** 2 + thisBall.vy ** 2;
+        const b =
+          -2 * cornerX * thisBall.vx +
+          2 * thisBall.x * thisBall.vx -
+          2 * cornerY * thisBall.vy +
+          2 * thisBall.y * thisBall.vy;
+        const c =
+          cornerX ** 2 -
+          2 * cornerX * thisBall.x +
+          thisBall.x ** 2 +
+          cornerY ** 2 -
+          2 * cornerY * thisBall.y +
+          thisBall.y ** 2 -
+          thisBall.r ** 2;
+
+        const numerator = -b + sign * Math.sqrt(b ** 2 - 4 * a * c);
+        const denominator = 2 * a;
         const t = numerator / denominator;
 
-        this.x = t;
-        this.y = m * t + c;
+        return t;
+      }
 
-        // Normal to the tangent line of the ball going through the corner of the square
-        const normalAngle = Math.atan((corner.y - this.y) / (corner.x - this.x));
-
-        // Using the law of reflection (angle of reflection = angle of incidence) find the angle of the ball's new path
-        const incidenceAngle = angle + Math.PI - normalAngle;
-        const reflectionAngle = normalAngle - incidenceAngle;
-
-        this.setVelocity(reflectionAngle);
+      function bounceOffCorner() {
+        // // Corner of the square the ball will hit
+        // const corner = { x: squareEdges[side.x], y: squareEdges[side.y] };
+        // // Get the angle of the ball's path
+        // const angle = this.vx < 0 ? Math.atan(m) + Math.PI : Math.atan(m);
+        // this.x = t;
+        // this.y = m * t + c;
+        // // Normal to the tangent line of the ball going through the corner of the square
+        // const normalAngle = Math.atan((corner.y - this.y) / (corner.x - this.x));
+        // // Using the law of reflection (angle of reflection = angle of incidence) find the angle of the ball's new path
+        // const incidenceAngle = angle + Math.PI - normalAngle;
+        // const reflectionAngle = normalAngle - incidenceAngle;
+        // this.setVelocity(reflectionAngle);
       }
 
       //   // Bounce ball off of the side of the square
