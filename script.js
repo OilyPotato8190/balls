@@ -258,21 +258,28 @@ class Ball {
       }
 
       function checkCorner(thisBall, corner, lastPos) {
-        const side1 = squareEdges[corner[1]];
-        const sign1 = corner[1] === "l" ? -1 : 1;
+        // Get the x and y of the corner and whether the radius should be added or subtracted
+        const sideX = squareEdges[corner[1]];
+        const signX = corner[1] === "l" ? -1 : 1;
 
-        const side2 = squareEdges[corner[0]];
-        const sign2 = corner[0] === "t" ? -1 : 1;
+        const sideY = squareEdges[corner[0]];
+        const signY = corner[0] === "t" ? -1 : 1;
 
-        const time1 = (side1 + sign1 * thisBall.r - lastPos.x) / thisBall.vx;
-        const value1 = thisBall.y + thisBall.vy * time1;
+        // Find the x value of the circle when it hits the y side
+        const timeToX = (sideX + signX * thisBall.r - lastPos.x) / thisBall.vx;
+        const valueAtY = thisBall.y + thisBall.vy * timeToX;
 
-        const time2 = (side2 + sign2 * thisBall.r - lastPos.y) / thisBall.vy;
-        const value2 = thisBall.x + thisBall.vx * time2;
+        // Find the y value of the circle when it hits the x side
+        const timeToY = (sideY + signY * thisBall.r - lastPos.y) / thisBall.vy;
+        const valueAtX = thisBall.x + thisBall.vx * timeToY;
 
-        console.log(time1);
+        // Convert path of ball to general form ax + by + c = 0
+        const a = thisBall.vy;
+        const b = -thisBall.vx;
+        const c = -a * thisBall.x - b * thisBall.y;
 
-        if (value1 * sign1 > side2 * sign1 && value2 * sign2 > side1 * sign2) return true;
+        // Get distance from the corner to the closest point on the line
+        const distToCorner = Math.abs(a * sideX + b * sideY + c) / Math.sqrt(a ** 2 + b ** 2);
       }
 
       function checkSide(thisBall, side, lastPos) {
@@ -334,16 +341,6 @@ class Ball {
 
       // if (totalDist < this.r) {
       //   // square.health--;
-
-      console.log(getT(370, 500, this));
-      console.log(`
-        a: ${this.vx}
-        b: ${this.vy}
-        x: 370
-        y: 500
-        p: ${this.x}
-        q: ${this.y}
-      `);
 
       function getT(cornerX, cornerY, thisBall) {
         // Determines which solution of the quadratic to use, depending on whether the ball is moving to the left or the right
