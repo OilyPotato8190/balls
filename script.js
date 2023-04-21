@@ -17,7 +17,7 @@ for (let n = 0; n < 1; n++) {
 let marker = {
   x: cnv.width / 2,
   y: cnv.height * 0.3,
-  r: 25,
+  r: 50,
   shooting: false,
   draw: true,
   angle: 0,
@@ -92,7 +92,7 @@ class Ball {
     this.y = marker.y;
     this.vx = 0;
     this.vy = 0;
-    this.speed = 20;
+    this.speed = 5;
     this.r = marker.r;
 
     this.setVelocity(angle);
@@ -265,13 +265,13 @@ class Ball {
         const sideY = squareEdges[corner[0]];
         const signY = corner[0] === "t" ? -1 : 1;
 
-        // Find the x value of the circle when it hits the y side
+        // Find the y value of the circle when its a radius away from the x side
         const timeToX = (sideX + signX * thisBall.r - lastPos.x) / thisBall.vx;
-        const valueAtY = thisBall.y + thisBall.vy * timeToX;
+        const valueY = thisBall.y + thisBall.vy * timeToX;
 
-        // Find the y value of the circle when it hits the x side
+        // Find the x value of the circle when its a radius away from the y side
         const timeToY = (sideY + signY * thisBall.r - lastPos.y) / thisBall.vy;
-        const valueAtX = thisBall.x + thisBall.vx * timeToY;
+        const valueX = thisBall.x + thisBall.vx * timeToY;
 
         // Convert path of ball to general form ax + by + c = 0
         const a = thisBall.vy;
@@ -280,6 +280,21 @@ class Ball {
 
         // Get distance from the corner to the closest point on the line
         const distToCorner = Math.abs(a * sideX + b * sideY + c) / Math.sqrt(a ** 2 + b ** 2);
+
+        // Check if it has hit the corner
+        if (distToCorner < thisBall.r) {
+          if (signX === -Math.sign(thisBall.vx)) {
+            console.log("a");
+            if (valueY * signY > sideY * signY) return true;
+          } else if (valueX * signX > sideX * signX) {
+            console.log(valueX, sideX, signX);
+            // thisBall.x = valueX;
+            // thisBall.y = squareEdges.t - thisBall.r;
+            return true;
+          }
+        }
+
+        return false;
       }
 
       function checkSide(thisBall, side, lastPos) {
@@ -408,7 +423,7 @@ class Square {
     this.y = y;
     this.health = objects.balls.length;
 
-    this.size = 50;
+    this.size = 200;
     this.fontSize = this.size / 2;
 
     objects.squares.push(this);
@@ -425,7 +440,7 @@ class Square {
   }
 }
 
-new Square(marker.x, marker.y + 300);
+new Square(marker.x - 100, marker.y + 300);
 
 document.addEventListener("mousemove", (e) => {
   const rect = canvas.getBoundingClientRect();
