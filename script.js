@@ -17,7 +17,7 @@ for (let n = 0; n < 100000; n++) {
 let marker = {
   x: cnv.width / 2,
   y: cnv.height * 0.9,
-  r: 50,
+  r: 2,
   shooting: false,
   draw: true,
   angle: 0,
@@ -34,11 +34,11 @@ let marker = {
   },
 
   shoot() {
-    if ((frameCount - this.frameShot) % this.shootDelay && frameCount - this.frameShot) return;
-    new Ball(this.angle + Math.PI + this.ballIndex, this.ballIndex);
-
-    this.ballIndex++;
-    if (this.ballIndex >= objects.balls.length) this.shooting = false;
+    while (this.ballIndex < objects.balls.length) {
+      new Ball(this.angle + Math.PI + this.ballIndex * 0.0001, this.ballIndex);
+      this.ballIndex++;
+    }
+    this.shooting = false;
   },
 };
 
@@ -405,7 +405,10 @@ class Square {
   }
 }
 
-new Square(marker.x - 150, marker.y - 500);
+new Square(marker.x - 150, marker.y - 600);
+new Square(marker.x + 30, marker.y - 400);
+new Square(marker.x - 70, marker.y - 250);
+new Square(marker.x - 200, marker.y - 700);
 
 document.addEventListener('mousemove', (e) => {
   const rect = canvas.getBoundingClientRect();
