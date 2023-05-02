@@ -109,9 +109,12 @@ class Ball {
     this.speed = 15;
     this.r = ballSize;
     this.sliding = false;
-    this.color = `rgb(${Math.floor(Math.random() * 256)}, ${Math.floor(Math.random() * 256)}, ${Math.floor(
-      Math.random() * 256
-    )})`;
+    this.color =
+      index === objects.balls.length - 1
+        ? 'black'
+        : `rgb(${Math.floor(Math.random() * 256)}, ${Math.floor(Math.random() * 256)}, ${Math.floor(
+            Math.random() * 256
+          )})`;
 
     this.setVelocity(angle);
     objects.balls[this.index] = this;
