@@ -263,10 +263,8 @@ class Ball {
           };
 
           fixPos(corner, this);
-          //  cornerBounce(corner, this);
+          cornerBounce(corner, this);
         }
-        this.vx = 0;
-        this.vy = 0;
       }
 
       function checkSide(thisBall, side, lastPos) {
