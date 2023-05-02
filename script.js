@@ -10,7 +10,7 @@ let objects = {
   squares: [],
 };
 
-for (let n = 0; n < 1; n++) {
+for (let n = 0; n < 100000; n++) {
   objects.balls.push(null);
 }
 
@@ -94,6 +94,7 @@ class Ball {
     this.vy = 0;
     this.speed = 20;
     this.r = marker.r;
+    this.color = `rgb(${Math.floor(Math.random() * 256)}, ${Math.floor(Math.random() * 256)}, ${Math.floor(Math.random() * 256)})`
 
     this.setVelocity(angle);
     objects.balls[this.index] = this;
@@ -102,13 +103,9 @@ class Ball {
   draw() {
     this.move();
     this.checkCollision();
+    ctx.fillStyle = this.color;
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.r, 0, 2 * Math.PI);
-    ctx.fill();
-
-    ctx.fillStyle = 'white';
-    ctx.beginPath();
-    ctx.arc(this.x, this.y, 5, 0, 2 * Math.PI);
     ctx.fill();
     ctx.fillStyle = 'black';
   }
