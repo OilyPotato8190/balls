@@ -208,7 +208,7 @@ class Ball {
           maybeHit.corners.push('tl', 'bl');
           if (thisBall.vy > 0) {
             maybeHit.corners.push('tr');
-          } else if (thisBall.vy > 0) {
+          } else if (thisBall.vy < 0) {
             maybeHit.corners.push('br');
           }
         } else if (thisBall.vx < 0) {
@@ -216,7 +216,7 @@ class Ball {
           maybeHit.corners.push('tr', 'br');
           if (thisBall.vy > 0) {
             maybeHit.corners.push('tl');
-          } else if (thisBall.vy > 0) {
+          } else if (thisBall.vy < 0) {
             maybeHit.corners.push('bl');
           }
         }
