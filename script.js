@@ -1,8 +1,18 @@
 const cnv = document.getElementById('canvas');
 const ctx = cnv.getContext('2d');
 
-cnv.width = window.innerWidth - 40;
-cnv.height = window.innerHeight - 40;
+const squareSize = 50;
+const ballSize = 20;
+let ballsMoving = false;
+cnv.width = Math.round((window.innerWidth - 40) / 2 / squareSize) * squareSize;
+cnv.height = Math.round((window.innerHeight - 150) / squareSize) * squareSize;
+
+const gameWindow = {
+  l: 0,
+  r: cnv.width,
+  t: Math.round(150 / squareSize) * squareSize,
+  b: cnv.height,
+};
 
 let mouse = {};
 let objects = {
@@ -10,35 +20,38 @@ let objects = {
   squares: [],
 };
 
-for (let n = 0; n < 100000; n++) {
+for (let n = 0; n < 5; n++) {
   objects.balls.push(null);
 }
 
 let marker = {
-  x: cnv.width / 2,
-  y: cnv.height * 0.9,
-  r: 2,
+  x: gameWindow.l + (gameWindow.r - gameWindow.l) / 2,
+  y: cnv.height - ballSize,
+  r: ballSize,
   shooting: false,
   draw: true,
   angle: 0,
   frameShot: 0,
   ballIndex: 0,
-  shootDelay: 3,
+  shootDelay: 5,
 
   draw() {
     if (this.shooting) this.shoot();
+    if (objects.balls[objects.balls.length - 1]) return;
 
+    ctx.fillStyle = 'black';
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.r, 0, 2 * Math.PI);
     ctx.fill();
   },
 
   shoot() {
-    while (this.ballIndex < objects.balls.length) {
-      new Ball(this.angle + Math.PI + this.ballIndex * 0.0001, this.ballIndex);
-      this.ballIndex++;
-    }
-    this.shooting = false;
+    ballsMoving = true;
+    if ((frameCount - this.frameShot) % this.shootDelay && frameCount - this.frameShot) return;
+    new Ball(this.angle + Math.PI + this.ballIndex * 0.0001 * 0, this.ballIndex);
+    this.ballIndex++;
+
+    if (this.ballIndex >= objects.balls.length) this.shooting = false;
   },
 };
 
@@ -50,7 +63,7 @@ let aim = {
   angle: 0,
 
   draw() {
-    if (!mouse.down || marker.shooting) return;
+    if (!mouse.down || ballsMoving) return;
 
     this.updateAngle();
 
@@ -59,6 +72,7 @@ let aim = {
     for (let n = 0; n < 10; n++) {
       const coords = this.getCoords(n);
 
+      ctx.fillStyle = 'black';
       ctx.beginPath();
       ctx.arc(coords.x, coords.y, this.r, 0, 2 * Math.PI);
       ctx.fill();
@@ -77,8 +91,8 @@ let aim = {
   getCoords(n) {
     const hyp = this.y - (this.y - n * this.spacing);
 
-    const x = this.x - hyp * Math.cos(this.angle);
-    const y = this.y - hyp * Math.sin(this.angle);
+    const x = marker.x - hyp * Math.cos(this.angle);
+    const y = marker.y - hyp * Math.sin(this.angle);
 
     return { x: x, y: y };
   },
@@ -92,9 +106,12 @@ class Ball {
     this.y = marker.y;
     this.vx = 0;
     this.vy = 0;
-    this.speed = 20;
-    this.r = marker.r;
-    this.color = `rgb(${Math.floor(Math.random() * 256)}, ${Math.floor(Math.random() * 256)}, ${Math.floor(Math.random() * 256)})`
+    this.speed = 15;
+    this.r = ballSize;
+    this.sliding = false;
+    this.color = `rgb(${Math.floor(Math.random() * 256)}, ${Math.floor(Math.random() * 256)}, ${Math.floor(
+      Math.random() * 256
+    )})`;
 
     this.setVelocity(angle);
     objects.balls[this.index] = this;
@@ -102,12 +119,13 @@ class Ball {
 
   draw() {
     this.move();
+    if (this.sliding) this.slide();
     this.checkCollision();
+
     ctx.fillStyle = this.color;
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.r, 0, 2 * Math.PI);
     ctx.fill();
-    ctx.fillStyle = 'black';
   }
 
   setVelocity(angle) {
@@ -120,27 +138,32 @@ class Ball {
     this.y += this.vy;
   }
 
+  slide() {
+    if (Math.sign(this.vx) * (marker.x - (this.x + this.vx)) <= 0) {
+      objects.balls[this.index] = null;
+    }
+  }
+
   checkCollision() {
-    if (this.x + this.r > cnv.width) {
+    if (this.x + this.r > gameWindow.r) {
       this.vx *= -1;
-      this.x = cnv.width - this.r;
-    } else if (this.x - this.r < 0) {
+      this.x = gameWindow.r - this.r;
+    } else if (this.x - this.r < gameWindow.l) {
       this.vx *= -1;
-      this.x = 0 + this.r;
+      this.x = gameWindow.l + this.r;
     }
 
-    // if (this.y - this.r < 0) {
-    //    this.vy *= -1;
-    // } else if (this.y - this.r > cnv.height) {
-    //    objects.balls[this.index] = null;
-    // }
+    if (this.y - this.r < gameWindow.t) {
+      this.vy *= -1;
+      this.y = gameWindow.t + this.r;
+    } else if (this.y + this.r > gameWindow.b) {
+      if (this.index === 0) marker.x = this.x;
+      if (this.index === objects.balls.length - 1) ballsMoving = false;
 
-    if (this.y - this.r < 0) {
-      this.vy *= -1;
-      this.y = 0 + this.r;
-    } else if (this.y + this.r > cnv.height) {
-      this.vy *= -1;
-      this.y = cnv.height - this.r;
+      this.sliding = true;
+      this.vx = Math.sign(marker.x - this.x) * this.speed;
+      this.vy = 0;
+      this.y = gameWindow.b - this.r;
     }
 
     for (let i = 0; i < objects.squares.length; i++) {
@@ -393,20 +416,15 @@ class Square {
   }
 
   draw() {
+    ctx.strokeStyle = 'black';
     ctx.strokeRect(this.x, this.y, this.size, this.size);
 
     ctx.fillStyle = 'red';
     ctx.font = `${this.fontSize}px Comic Sans MS`;
     const width = ctx.measureText(this.health).width;
     ctx.fillText(this.health, this.x - width / 2 + this.size / 2, this.y + this.fontSize / 3 + this.size / 2);
-    ctx.fillStyle = 'black';
   }
 }
-
-new Square(marker.x - 150, marker.y - 600);
-new Square(marker.x + 30, marker.y - 400);
-new Square(marker.x - 70, marker.y - 250);
-new Square(marker.x - 200, marker.y - 700);
 
 document.addEventListener('mousemove', (e) => {
   const rect = canvas.getBoundingClientRect();
@@ -423,7 +441,7 @@ document.addEventListener('mousedown', () => {
 document.addEventListener('mouseup', () => {
   mouse.down = false;
 
-  if (!marker.shooting && aim.spacing > 20) {
+  if (!marker.shooting && aim.spacing > 20 && !ballsMoving) {
     marker.shooting = true;
     marker.angle = aim.angle;
     marker.frameShot = frameCount - 1;
@@ -436,6 +454,12 @@ let frameCount = 0;
 function loop() {
   frameCount++;
   ctx.clearRect(0, 0, cnv.width, cnv.height);
+
+  for (let y = gameWindow.t; y < gameWindow.b; y += squareSize) {
+    for (let x = gameWindow.l; x < gameWindow.r; x += squareSize) {
+      ctx.strokeRect(x, y, squareSize, squareSize);
+    }
+  }
 
   marker.draw();
   aim.draw();
