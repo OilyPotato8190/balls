@@ -24,12 +24,23 @@ for (let n = 0; n < 5; n++) {
   objects.balls.push(null);
 }
 
-let marker = {
+// Funny color things
+let rgb = [
+  { value: 0, change: 0 },
+  { value: 0, change: 0 },
+  { value: 0, change: 0 },
+];
+let ballColor = `rgb(${rgb[0].value}, ${rgb[1].value}, ${rgb[2].value})`;
+
+function updateColor() {
+  ballColor = `rgb(${rgb[0].value}, ${rgb[1].value}, ${rgb[2].value})`;
+}
+
+let markerStart = {
   x: gameWindow.l + (gameWindow.r - gameWindow.l) / 2,
   y: cnv.height - ballSize,
   r: ballSize,
   shooting: false,
-  draw: true,
   angle: 0,
   frameShot: 0,
   ballIndex: 0,
@@ -39,15 +50,21 @@ let marker = {
     if (this.shooting) this.shoot();
     if (objects.balls[objects.balls.length - 1]) return;
 
-    ctx.fillStyle = 'black';
+    ctx.fillStyle = ballColor;
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.r, 0, 2 * Math.PI);
     ctx.fill();
+
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'black';
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.r, 0, 2 * Math.PI);
+    ctx.stroke();
   },
 
   shoot() {
-    ballsMoving = true;
     if ((frameCount - this.frameShot) % this.shootDelay && frameCount - this.frameShot) return;
+    ballsMoving = true;
     new Ball(this.angle + Math.PI + this.ballIndex * 0.0001 * 0, this.ballIndex);
     this.ballIndex++;
 
@@ -55,9 +72,30 @@ let marker = {
   },
 };
 
+let markerEnd = {
+  x: 0,
+  y: cnv.height - ballSize,
+  r: ballSize,
+
+  draw() {
+    if (!ballsMoving || (objects.balls[0] && !objects.balls[0].sliding)) return;
+
+    ctx.fillStyle = ballColor;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.r, 0, 2 * Math.PI);
+    ctx.fill();
+
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'black';
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.r, 0, 2 * Math.PI);
+    ctx.stroke();
+  },
+};
+
 let aim = {
-  x: marker.x,
-  y: marker.y,
+  x: markerStart.x,
+  y: markerStart.y,
   r: 7,
   spacing: 15,
   angle: 0,
@@ -69,10 +107,10 @@ let aim = {
 
     if (this.spacing < 20) return;
 
-    for (let n = 0; n < 10; n++) {
+    for (let n = 1; n <= 10; n++) {
       const coords = this.getCoords(n);
 
-      ctx.fillStyle = 'black';
+      ctx.fillStyle = ballColor;
       ctx.beginPath();
       ctx.arc(coords.x, coords.y, this.r, 0, 2 * Math.PI);
       ctx.fill();
@@ -91,8 +129,8 @@ let aim = {
   getCoords(n) {
     const hyp = this.y - (this.y - n * this.spacing);
 
-    const x = marker.x - hyp * Math.cos(this.angle);
-    const y = marker.y - hyp * Math.sin(this.angle);
+    const x = markerStart.x - hyp * Math.cos(this.angle);
+    const y = markerStart.y - hyp * Math.sin(this.angle);
 
     return { x: x, y: y };
   },
@@ -102,19 +140,13 @@ class Ball {
   constructor(angle, index) {
     this.index = index;
 
-    this.x = marker.x;
-    this.y = marker.y;
+    this.x = markerStart.x;
+    this.y = markerStart.y;
     this.vx = 0;
     this.vy = 0;
     this.speed = 15;
     this.r = ballSize;
     this.sliding = false;
-    this.color =
-      index === objects.balls.length - 1
-        ? 'black'
-        : `rgb(${Math.floor(Math.random() * 256)}, ${Math.floor(Math.random() * 256)}, ${Math.floor(
-            Math.random() * 256
-          )})`;
 
     this.setVelocity(angle);
     objects.balls[this.index] = this;
@@ -125,10 +157,16 @@ class Ball {
     if (this.sliding) this.slide();
     this.checkCollision();
 
-    ctx.fillStyle = this.color;
+    ctx.fillStyle = ballColor;
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.r, 0, 2 * Math.PI);
     ctx.fill();
+
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'black';
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.r, 0, 2 * Math.PI);
+    ctx.stroke();
   }
 
   setVelocity(angle) {
@@ -142,7 +180,7 @@ class Ball {
   }
 
   slide() {
-    if (Math.sign(this.vx) * (marker.x - (this.x + this.vx)) <= 0) {
+    if (Math.sign(this.vx) * (markerStart.x - (this.x + this.vx)) <= 0) {
       objects.balls[this.index] = null;
     }
   }
@@ -160,11 +198,14 @@ class Ball {
       this.vy *= -1;
       this.y = gameWindow.t + this.r;
     } else if (this.y + this.r > gameWindow.b) {
-      if (this.index === 0) marker.x = this.x;
+      if (this.index === 0) {
+        markerStart.x = this.x;
+        markerEnd.x = this.x;
+      }
       if (this.index === objects.balls.length - 1) ballsMoving = false;
 
       this.sliding = true;
-      this.vx = Math.sign(marker.x - this.x) * this.speed;
+      this.vx = Math.sign(markerStart.x - this.x) * this.speed;
       this.vy = 0;
       this.y = gameWindow.b - this.r;
     }
@@ -444,11 +485,11 @@ document.addEventListener('mousedown', () => {
 document.addEventListener('mouseup', () => {
   mouse.down = false;
 
-  if (!marker.shooting && aim.spacing > 20 && !ballsMoving) {
-    marker.shooting = true;
-    marker.angle = aim.angle;
-    marker.frameShot = frameCount - 1;
-    marker.ballIndex = 0;
+  if (!markerStart.shooting && aim.spacing > 20 && !ballsMoving) {
+    markerStart.shooting = true;
+    markerStart.angle = aim.angle;
+    markerStart.frameShot = frameCount - 1;
+    markerStart.ballIndex = 0;
   }
 });
 
@@ -458,13 +499,28 @@ function loop() {
   frameCount++;
   ctx.clearRect(0, 0, cnv.width, cnv.height);
 
+  for (let i = 0; i < rgb.length; i++) {
+    rgb[i].value += rgb[i].change;
+    if (rgb[i].value <= 0 || rgb[i].value >= 256) {
+      rgb[i].value = rgb[i].value < 0 ? 0 : 256;
+      const sign = rgb[i].value === 0 ? 1 : -1;
+      rgb[i].change = sign * Math.random() * 5;
+      console.log(rgb[i].change);
+    }
+  }
+
+  updateColor();
+  // console.log(ballColor);
+
   for (let y = gameWindow.t; y < gameWindow.b; y += squareSize) {
     for (let x = gameWindow.l; x < gameWindow.r; x += squareSize) {
+      ctx.lineWidth = 1;
       ctx.strokeRect(x, y, squareSize, squareSize);
     }
   }
 
-  marker.draw();
+  markerStart.draw();
+  markerEnd.draw();
   aim.draw();
 
   for (let i = 0; i < objects.balls.length; i++) {
