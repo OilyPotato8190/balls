@@ -7,6 +7,7 @@ cnv.height = Math.round((window.innerHeight - 150) / squareSize) * squareSize;
 
 const ballSize = 12;
 let ballsMoving = false;
+let squaresMoving = false;
 let mouse = {};
 let balls = [];
 let squares = [];
@@ -101,7 +102,7 @@ let aim = {
     if (!mouse.down || ballsMoving) return;
 
     this.updateAngle();
-    this.goodAngle = this.spacing > 20 && this.angle > 0.1 && this.angle < Math.PI - 0.1 ? true : false;
+    this.goodAngle = this.spacing > 20 && this.angle > 0.05 && this.angle < Math.PI - 0.05 ? true : false;
 
     if (!this.goodAngle) return;
 
@@ -447,6 +448,7 @@ class Square {
     this.xIndex = xIndex;
     this.yIndex = 0;
     this.health = balls.length;
+    this.moveSpeed = 10;
 
     this.size = squareSize;
     this.fontSize = this.size / 2;
@@ -470,19 +472,34 @@ class Square {
 
 function generateSquares() {
   for (let i = 0; i < squares[0].length; i++) {
-    const create = Math.random() < 0.5 ? true : false;
+    const create = Math.random() < 1 ? true : false;
 
     if (create) new Square(i);
   }
 }
 
-for (let n = 0; n < 12; n++) {
-  generateSquares();
-  for (let i = 0; i < squares[0].length; i++) {
-    if (squares[0][i]) squares[0][i].yIndex++;
+function moveSquares() {
+  // for (let i = squares.length - 1; i >= 0; i--) {
+  //   squares[i] = squares[i - 1] || new Array(squares.length).fill(null);
+  //   for (let j = 0; j < squares[i].length; j++) {
+  //     if (squares[i][j]) {
+  //       squares[i][j].yIndex++;
+  //     }
+  //   }
+  // }
+  for (let i = 0; i < squares.length; i++) {
+    for (let j = 0; j < squares[i].length; j++) {
+      const square = squares[i][j];
+      if (square) {
+        square.yIndex += 1 / square.moveSpeed;
+        if (Number.isInteger(square.yIndex)) squaresMoving = false;
+        console.log(square.yIndex);
+      }
+    }
   }
-  console.log(squares[0]);
 }
+
+generateSquares();
 
 document.addEventListener('mousemove', (e) => {
   const rect = canvas.getBoundingClientRect();
@@ -539,12 +556,14 @@ function loop() {
   markerEnd.draw();
   aim.draw();
 
+  if (squaresMoving) moveSquares();
+
   ctx.strokeRect(gameWindow.l, gameWindow.t, gameWindow.w, gameWindow.h);
 
   requestAnimationFrame(loop);
 }
 
 loop();
-generateSquares();
+squaresMoving = true;
 
 // setInterval(loop, 500);
