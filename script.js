@@ -5,31 +5,23 @@ const squareSize = 50;
 cnv.width = Math.round((window.innerWidth - 40) / 2 / squareSize) * squareSize;
 cnv.height = Math.round((window.innerHeight - 150) / squareSize) * squareSize;
 
+let scoreEl = document.getElementById('score');
+
 const ballSize = 12;
-let ballsMoving = false;
 let ballsLeft = -1;
 let squaresMoving = false;
+let score = 1;
 let mouse = {};
 let balls = [];
 let squares = [];
 
-const gameWindow = {
-  l: 0,
-  r: cnv.width,
-  t: Math.round(150 / squareSize) * squareSize,
-  //   t: Math.round(600 / squareSize) * squareSize,
-  b: cnv.height,
-};
-gameWindow.w = gameWindow.r - gameWindow.l;
-gameWindow.h = gameWindow.b - gameWindow.t;
-
-for (let n = 0; n < 10; n++) {
+for (let n = 0; n < 1; n++) {
   balls.push(null);
 }
 
-for (let n = 0; n < (gameWindow.b - gameWindow.t) / squareSize; n++) {
+for (let n = 0; n < cnv.height / squareSize; n++) {
   let array = [];
-  for (let n = 0; n < (gameWindow.r - gameWindow.l) / squareSize; n++) {
+  for (let n = 0; n < cnv.width / squareSize; n++) {
     array.push(null);
   }
   squares.push(array);
@@ -48,8 +40,8 @@ function updateColor() {
 }
 
 let markerStart = {
-  x: gameWindow.l + gameWindow.w / 2,
-  y: gameWindow.b - ballSize,
+  x: cnv.width / 2,
+  y: cnv.height - ballSize,
   r: ballSize,
   shooting: false,
   angle: 0,
@@ -59,9 +51,8 @@ let markerStart = {
 
   draw() {
     if (this.shooting) this.shoot();
-    if (balls[balls.length - 1] && ballsMoving) return;
+    if (!this.shooting && ballsLeft > -1) return;
 
-    console.log('a');
     ctx.fillStyle = ballColor;
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.r, 0, 2 * Math.PI);
@@ -70,7 +61,6 @@ let markerStart = {
 
   shoot() {
     if ((frameCount - this.frameShot) % this.shootDelay && frameCount - this.frameShot) return;
-    ballsMoving = true;
     new Ball(this.angle + Math.PI + this.ballIndex * 0.0001 * 0, this.ballIndex);
     this.ballIndex++;
 
@@ -84,7 +74,7 @@ let markerEnd = {
   r: ballSize,
 
   draw() {
-    if (!ballsMoving || ballsLeft === balls.length || ballsLeft === -1) return;
+    if (ballsLeft === balls.length || ballsLeft === -1) return;
 
     ctx.fillStyle = ballColor;
     ctx.beginPath();
@@ -102,7 +92,7 @@ let aim = {
   goodAngle: false,
 
   draw() {
-    if (!mouse.down || ballsMoving || squaresMoving) return;
+    if (!mouse.down || ballsLeft > -1 || squaresMoving) return;
 
     this.updateAngle();
     this.goodAngle = this.spacing > 20 && this.angle > 0.05 && this.angle < Math.PI - 0.05 ? true : false;
@@ -158,6 +148,7 @@ class Ball {
     this.move();
     if (this.sliding) this.slide();
     else this.checkCollision();
+    if (!balls[this.index]) return;
 
     ctx.fillStyle = ballColor;
     ctx.beginPath();
@@ -178,12 +169,7 @@ class Ball {
   slide() {
     if (Math.sign(this.vx) * (markerEnd.x - (this.x + this.vx)) <= 0) {
       balls[this.index] = null;
-      if (isLast()) {
-        ballsLeft--;
-        markerStart.x = markerEnd.x;
-        ballsMoving = false;
-        generateSquares();
-      }
+      if (isLast()) addScore();
 
       function isLast() {
         for (let i = 0; i < balls.length; i++) {
@@ -195,30 +181,31 @@ class Ball {
   }
 
   checkCollision() {
-    if (this.x + this.r > gameWindow.r) {
+    if (this.x + this.r > cnv.width) {
       this.vx *= -1;
-      this.x = gameWindow.r - this.r;
-    } else if (this.x - this.r < gameWindow.l) {
+      this.x = cnv.width - this.r;
+    } else if (this.x - this.r < 0) {
       this.vx *= -1;
-      this.x = gameWindow.l + this.r;
+      this.x = this.r;
     }
 
-    if (this.y - this.r < gameWindow.t) {
+    if (this.y - this.r < 0) {
       this.vy *= -1;
-      this.y = gameWindow.t + this.r;
-    } else if (this.y + this.r > gameWindow.b) {
+      this.y = this.r;
+    } else if (this.y + this.r > cnv.height) {
       ballsLeft--;
 
       if (ballsLeft === balls.length - 1) {
         markerEnd.x = this.x;
         balls[this.index] = null;
+        if (balls.length === 1) addScore();
         return;
       }
 
       this.sliding = true;
       this.vx = Math.sign(markerEnd.x - this.x) * this.speed;
       this.vy = 0;
-      this.y = gameWindow.b - this.r;
+      this.y = cnv.height - this.r;
       return;
     }
 
@@ -430,23 +417,59 @@ class Ball {
           }
         }
 
+        function checkAdjacent(hit) {
+          // Check top left
+          if (hit === 'tl') {
+            const above = squares[square.yIndex - 1][square.xIndex] ? true : false;
+            const left = squares[square.yIndex][square.xIndex - 1] ? true : false;
+            if (left && above) return;
+            else if (left) return 't';
+            else if (above) return 'l';
+          }
+          // Check top right
+          else if (hit === 'tr') {
+            const above = squares[square.yIndex - 1][square.xIndex] ? true : false;
+            const right = squares[square.yIndex][square.xIndex + 1] ? true : false;
+            if (right && above) return;
+            else if (right) return 't';
+            else if (above) return 'r';
+          }
+          // Check bottom left
+          else if (hit === 'bl') {
+            const below = squares[square.yIndex + 1][square.xIndex] ? true : false;
+            const left = squares[square.yIndex][square.xIndex - 1] ? true : false;
+            if (left && below) return;
+            else if (left) return 'b';
+            else if (below) return 'l';
+          }
+          // Check bottom right
+          else if (hit === 'br') {
+            const below = squares[square.yIndex + 1][square.xIndex] ? true : false;
+            const right = squares[square.yIndex][square.xIndex + 1] ? true : false;
+            if (right && below) return;
+            else if (right) return 'b';
+            else if (below) return 'r';
+          }
+        }
+
         if (colliding(this)) {
           square.health--;
-          const hit = hitWhat(this);
-          if (!hit) throw 'Error something terrible has happened';
+
+          const hit = checkAdjacent(hitWhat(this));
+          if (!hit) continue;
 
           if (hit === 'l') {
             this.x = squareEdges.l - this.r;
-            this.vx *= -1;
+            this.vx = -Math.abs(this.vx);
           } else if (hit == 'r') {
             this.x = squareEdges.r + this.r;
-            this.vx *= -1;
+            this.vx = Math.abs(this.vx);
           } else if (hit === 't') {
             this.y = squareEdges.t - this.r;
-            this.vy *= -1;
+            this.vy = -Math.abs(this.vy);
           } else if (hit === 'b') {
             this.y = squareEdges.b + this.r;
-            this.vy *= -1;
+            this.vy = Math.abs(this.vy);
           } else {
             const corner = {
               x: squareEdges[hit[1]],
@@ -462,12 +485,16 @@ class Ball {
   }
 }
 
+class addBall {
+  constructor() {}
+}
+
 class Square {
   constructor(xIndex) {
     this.xIndex = xIndex;
     this.yIndex = 0;
-    this.health = balls.length;
-    this.framesToMove = 50;
+    this.health = Math.random() < 0.8 ? score : 2 * score;
+    this.framesToMove = 5;
 
     this.size = squareSize;
     this.fontSize = this.size / 2;
@@ -477,8 +504,8 @@ class Square {
 
   draw() {
     if (this.health <= 0) return (squares[this.yIndex][this.xIndex] = null);
-    this.x = gameWindow.l + this.xIndex * squareSize;
-    this.y = gameWindow.t + this.yIndex * squareSize;
+    this.x = this.xIndex * squareSize;
+    this.y = this.yIndex * squareSize;
 
     ctx.strokeStyle = 'black';
     ctx.strokeRect(this.x, this.y, this.size, this.size);
@@ -488,6 +515,14 @@ class Square {
     const width = ctx.measureText(this.health).width;
     ctx.fillText(this.health, this.x - width / 2 + this.size / 2, this.y + this.fontSize / 3 + this.size / 2);
   }
+}
+
+function addScore() {
+  ballsLeft--;
+  markerStart.x = markerEnd.x;
+  generateSquares();
+  score++;
+  scoreEl.innerHTML = score;
 }
 
 function generateSquares() {
@@ -545,7 +580,7 @@ document.addEventListener('mousedown', () => {
 document.addEventListener('mouseup', () => {
   mouse.down = false;
 
-  if (aim.goodAngle && !ballsMoving) {
+  if (aim.goodAngle && ballsLeft === -1) {
     markerStart.shooting = true;
     markerStart.angle = aim.angle;
     markerStart.frameShot = frameCount - 1;
@@ -587,8 +622,6 @@ function loop() {
   aim.draw();
 
   if (squaresMoving) moveSquares();
-
-  ctx.strokeRect(gameWindow.l, gameWindow.t, gameWindow.w, gameWindow.h);
 
   requestAnimationFrame(loop);
 }
