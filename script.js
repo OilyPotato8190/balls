@@ -2,7 +2,7 @@ const cnv = document.getElementById('canvas');
 const ctx = cnv.getContext('2d');
 
 const squareSize = 50;
-const rowNum = 15;
+const rowNum = 3;
 const columnNum = 12;
 cnv.width = squareSize * columnNum;
 cnv.height = squareSize * rowNum;
@@ -11,9 +11,10 @@ cnv.height = squareSize * rowNum;
 let scoreEl = document.getElementById('score');
 
 const ballSize = 12;
-const framesToMove = 1;
+const framesToMove = 50;
 let ballsLeft = -1;
 let squaresMoving = false;
+let addBall = false;
 let score = 1;
 let mouse = {};
 let balls = [];
@@ -54,6 +55,15 @@ let markerStart = {
   shootDelay: 5,
 
   draw() {
+    if (this.disappear) {
+      if (this.r > 0.5) {
+        this.r -= ballSize / framesToMove;
+        this.y += ballSize / framesToMove;
+      } else {
+        this.r = 0;
+      }
+    }
+
     if (this.shooting) this.shoot();
     if (!this.shooting && ballsLeft > -1) return;
 
@@ -218,6 +228,17 @@ class Ball {
 
     for (let i = 0; i < grid.length; i++) {
       for (let j = 0; j < grid[i].length; j++) {
+        // Orb collision check
+        if (grid[i][j] instanceof Orb) {
+          let orb = grid[i][j];
+          if ((orb.x - this.x) ** 2 + (orb.y - this.y) ** 2 < (orb.outerR + this.r) ** 2) {
+            grid[i][j] = null;
+            addBall = true;
+          }
+          continue;
+        }
+
+        // Square collision check
         const square = grid[i][j];
         if (!square) continue;
 
@@ -502,38 +523,32 @@ class Ball {
   }
 }
 
-class addBall {
+class Orb {
   constructor(xIndex) {
     this.xIndex = xIndex;
     this.yIndex = 0;
-    this.r1 = 10;
-    this.r2 = 6;
+    this.innerR = 7;
+    this.outerRSize = 12;
+    this.outerR = this.outerRSize;
 
     grid[this.yIndex][this.xIndex] = this;
   }
 
   draw() {
-    ctx.strokeStyle = 'black';
-    ctx.beginPath();
-    ctx.arc(
-      this.xIndex * squareSize + squareSize / 2,
-      this.yIndex * squareSize + squareSize / 2,
-      this.r1,
-      0,
-      2 * Math.PI
-    );
-    ctx.stroke();
+    this.x = this.xIndex * squareSize + squareSize / 2;
+    this.y = this.yIndex * squareSize + squareSize / 2;
+    this.outerR = this.outerRSize + Math.sin(0.3 * frameCount);
 
     ctx.fillStyle = 'black';
+    ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.arc(
-      this.xIndex * squareSize + squareSize / 2,
-      this.yIndex * squareSize + squareSize / 2,
-      this.r2,
-      0,
-      2 * Math.PI
-    );
+    ctx.arc(this.x, this.y, this.innerR, 0, 2 * Math.PI);
     ctx.fill();
+
+    ctx.strokeStyle = 'black';
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.outerR, 0, 2 * Math.PI);
+    ctx.stroke();
   }
 }
 
@@ -542,9 +557,9 @@ class Square {
     this.xIndex = xIndex;
     this.yIndex = 0;
     this.health = Math.random() < 0.8 ? score : 2 * score;
-
     this.size = squareSize;
     this.fontSize = this.size / 2;
+    this.backgroundColor = 'white';
 
     grid[this.yIndex][this.xIndex] = this;
   }
@@ -554,6 +569,10 @@ class Square {
     this.x = this.xIndex * squareSize;
     this.y = this.yIndex * squareSize;
 
+    ctx.fillStyle = this.backgroundColor;
+    ctx.fillRect(this.x, this.y, this.size, this.size);
+
+    ctx.lineWidth = 1;
     ctx.strokeStyle = 'black';
     ctx.strokeRect(this.x, this.y, this.size, this.size);
 
@@ -565,6 +584,8 @@ class Square {
 }
 
 function addScore() {
+  if (addBall) balls.push(null);
+  addBall = false;
   ballsLeft--;
   markerStart.x = markerEnd.x;
   score++;
@@ -584,10 +605,10 @@ function generateSquares() {
     indexes.splice(Math.floor(Math.random() * indexes.length), 1);
   }
 
-  // Create an addBall
+  // Create an orb
   if (ballNum === 1) {
     const randIndex = Math.floor(Math.random() * indexes.length);
-    grid[0][indexes[randIndex]] = new addBall(indexes[randIndex]);
+    grid[0][indexes[randIndex]] = new Orb(indexes[randIndex]);
     indexes.splice(randIndex, 1);
   }
 
@@ -604,6 +625,10 @@ function moveSquares() {
     }
   }
   squaresMoving = true;
+
+  for (let i = 0; i < grid[grid.length - 1].length; i++) {
+    if (grid[grid.length - 1][i]) markerStart.disappear = true;
+  }
 
   for (let i = 0; i < grid.length; i++) {
     for (let j = 0; j < grid[i].length; j++) {
@@ -673,9 +698,9 @@ function loop() {
     }
   }
 
+  aim.draw();
   markerStart.draw();
   markerEnd.draw();
-  aim.draw();
 
   if (squaresMoving) moveSquares();
 
