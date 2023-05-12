@@ -2,11 +2,10 @@ const cnv = document.getElementById('canvas');
 const ctx = cnv.getContext('2d');
 
 const squareSize = 50;
-const rowNum = 3;
+const rowNum = 15;
 const columnNum = 12;
 cnv.width = squareSize * columnNum;
 cnv.height = squareSize * rowNum;
-// cnv.height = Math.round((window.innerHeight - 600) / squareSize) * squareSize;
 
 let scoreEl = document.getElementById('score');
 
@@ -16,13 +15,10 @@ let ballsLeft = -1;
 let squaresMoving = false;
 let addBall = false;
 let score = 1;
+let stepsPerFrame = 10;
 let mouse = {};
-let balls = [];
+let balls = [null];
 let grid = [];
-
-for (let n = 0; n < 1; n++) {
-  balls.push(null);
-}
 
 for (let n = 0; n < rowNum; n++) {
   let array = [];
@@ -55,6 +51,14 @@ let markerStart = {
   shootDelay: 5,
 
   draw() {
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = ballColor;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.r, 0, 2 * Math.PI);
+    ctx.fill();
+  },
+
+  step() {
     if (this.disappear) {
       if (this.r > 0.5) {
         this.r -= ballSize / framesToMove;
@@ -66,11 +70,6 @@ let markerStart = {
 
     if (this.shooting) this.shoot();
     if (!this.shooting && ballsLeft > -1) return;
-
-    ctx.fillStyle = ballColor;
-    ctx.beginPath();
-    ctx.arc(this.x, this.y, this.r, 0, 2 * Math.PI);
-    ctx.fill();
   },
 
   shoot() {
@@ -90,6 +89,7 @@ let markerEnd = {
   draw() {
     if (ballsLeft === balls.length || ballsLeft === -1) return;
 
+    ctx.globalAlpha = 1;
     ctx.fillStyle = ballColor;
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.r, 0, 2 * Math.PI);
@@ -113,10 +113,12 @@ let aim = {
 
     if (!this.goodAngle) return;
 
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = ballColor;
+
     for (let n = 1; n <= 10; n++) {
       const coords = this.getCoords(n);
 
-      ctx.fillStyle = ballColor;
       ctx.beginPath();
       ctx.arc(coords.x, coords.y, this.r, 0, 2 * Math.PI);
       ctx.fill();
@@ -159,15 +161,18 @@ class Ball {
   }
 
   draw() {
-    this.move();
-    if (this.sliding) this.slide();
-    else this.checkCollision();
-    if (!balls[this.index]) return;
-
+    ctx.globalAlpha = 1;
     ctx.fillStyle = ballColor;
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.r, 0, 2 * Math.PI);
     ctx.fill();
+  }
+
+  step() {
+    this.move();
+    if (this.sliding) this.slide();
+    else this.checkCollision();
+    if (!balls[this.index]) return;
   }
 
   setVelocity(angle) {
@@ -240,7 +245,7 @@ class Ball {
 
         // Square collision check
         const square = grid[i][j];
-        if (!square) continue;
+        if (!square || square.transparency != 1) continue;
 
         const squareEdges = {
           l: square.x,
@@ -288,6 +293,9 @@ class Ball {
       collision.health--;
 
       const hit = checkAdjacent(hitWhat(this));
+      if (!hit) {
+        throw "Collision Error not good the ball doesn't know what it hit";
+      }
 
       if (hit === 'l') {
         this.x = edges.l - this.r;
@@ -535,10 +543,7 @@ class Orb {
   }
 
   draw() {
-    this.x = this.xIndex * squareSize + squareSize / 2;
-    this.y = this.yIndex * squareSize + squareSize / 2;
-    this.outerR = this.outerRSize + Math.sin(0.3 * frameCount);
-
+    ctx.globalAlpha = 1;
     ctx.fillStyle = 'black';
     ctx.lineWidth = 3;
     ctx.beginPath();
@@ -550,6 +555,12 @@ class Orb {
     ctx.arc(this.x, this.y, this.outerR, 0, 2 * Math.PI);
     ctx.stroke();
   }
+
+  step() {
+    this.x = this.xIndex * squareSize + squareSize / 2;
+    this.y = this.yIndex * squareSize + squareSize / 2;
+    this.outerR = this.outerRSize + Math.sin(0.3 * frameCount);
+  }
 }
 
 class Square {
@@ -560,15 +571,13 @@ class Square {
     this.size = squareSize;
     this.fontSize = this.size / 2;
     this.backgroundColor = 'white';
+    this.transparency = 1;
 
     grid[this.yIndex][this.xIndex] = this;
   }
 
   draw() {
-    if (this.health <= 0) return (grid[this.yIndex][this.xIndex] = null);
-    this.x = this.xIndex * squareSize;
-    this.y = this.yIndex * squareSize;
-
+    ctx.globalAlpha = this.transparency;
     ctx.fillStyle = this.backgroundColor;
     ctx.fillRect(this.x, this.y, this.size, this.size);
 
@@ -580,6 +589,14 @@ class Square {
     ctx.font = `${this.fontSize}px Comic Sans MS`;
     const width = ctx.measureText(this.health).width;
     ctx.fillText(this.health, this.x - width / 2 + this.size / 2, this.y + this.fontSize / 3 + this.size / 2);
+  }
+
+  step() {
+    if (this.health <= 0) this.transparency -= 0.1;
+    if (this.transparency <= 0) return (grid[this.yIndex][this.xIndex] = null);
+
+    this.x = this.xIndex * squareSize;
+    this.y = this.yIndex * squareSize;
   }
 }
 
@@ -662,6 +679,7 @@ document.addEventListener('mouseup', () => {
   mouse.down = false;
 
   if (aim.goodAngle && ballsLeft === -1) {
+    console.log('a');
     markerStart.shooting = true;
     markerStart.angle = aim.angle;
     markerStart.frameShot = frameCount - 1;
@@ -672,19 +690,45 @@ document.addEventListener('mouseup', () => {
 
 let frameCount = 0;
 function loop() {
-  frameCount++;
-  ctx.clearRect(0, 0, cnv.width, cnv.height);
+  // Simulation steps
+  for (let n = 0; n < stepsPerFrame; n++) {
+    frameCount++;
 
-  // Change colors randomly
-  for (let i = 0; i < rgb.length; i++) {
-    rgb[i].value += rgb[i].change;
-    if (rgb[i].value <= 0 || rgb[i].value >= 256) {
-      rgb[i].value = rgb[i].value < 0 ? 0 : 256;
-      const sign = rgb[i].value === 0 ? 1 : -1;
-      rgb[i].change = sign * Math.random() * 5;
+    // Change colors randomly
+    for (let i = 0; i < rgb.length; i++) {
+      rgb[i].value += rgb[i].change;
+      if (rgb[i].value <= 0 || rgb[i].value >= 256) {
+        rgb[i].value = rgb[i].value < 0 ? 0 : 256;
+        const sign = rgb[i].value === 0 ? 1 : -1;
+        rgb[i].change = sign * Math.random() * 5;
+      }
+    }
+    updateColor();
+
+    for (let i = 0; i < grid.length; i++) {
+      for (let j = 0; j < grid[i].length; j++) {
+        grid[i][j]?.step();
+      }
+    }
+
+    for (let i = 0; i < balls.length; i++) {
+      if (balls[i]) {
+        balls[i].step();
+      }
+    }
+
+    markerStart.step();
+
+    if (squaresMoving) moveSquares();
+  }
+
+  // Animation frames
+  ctx.clearRect(0, 0, cnv.width, cnv.height);
+  for (let i = 0; i < grid.length; i++) {
+    for (let j = 0; j < grid[i].length; j++) {
+      grid[i][j]?.draw();
     }
   }
-  updateColor();
 
   for (let i = 0; i < balls.length; i++) {
     if (balls[i]) {
@@ -692,21 +736,31 @@ function loop() {
     }
   }
 
-  for (let i = 0; i < grid.length; i++) {
-    for (let j = 0; j < grid[i].length; j++) {
-      grid[i][j]?.draw();
-    }
-  }
-
   aim.draw();
   markerStart.draw();
   markerEnd.draw();
-
-  if (squaresMoving) moveSquares();
 
   requestAnimationFrame(loop);
 }
 
 loop();
 
-// setInterval(loop, 500);
+// setInterval(loop, 100);
+
+function setGameState(gameStateString) {
+  const gameState = JSON.parse(gameStateString);
+  markerStart.x = gameState.markerX;
+  markerStart.angle = gameState.aimAngle;
+  grid = gameState.grid;
+
+  markerStart.shooting = true;
+}
+
+function logGameState() {
+  let gameState = {
+    markerX: markerStart.x,
+    aimAngle: aim.angle,
+    grid: grid,
+  };
+  console.log(`setGameState('${JSON.stringify(gameState)}')`);
+}
