@@ -15,18 +15,10 @@ let ballsLeft = -1;
 let squaresMoving = false;
 let addBall = false;
 let score = 1;
-let stepsPerFrame = 10;
+let stepsPerFrame = 1;
 let mouse = {};
 let balls = [null];
 let grid = [];
-
-for (let n = 0; n < rowNum; n++) {
-  let array = [];
-  for (let n = 0; n < columnNum; n++) {
-    array.push(null);
-  }
-  grid.push(array);
-}
 
 // Funny color things
 let rgb = [
@@ -293,9 +285,7 @@ class Ball {
       collision.health--;
 
       const hit = checkAdjacent(hitWhat(this));
-      if (!hit) {
-        throw "Collision Error not good the ball doesn't know what it hit";
-      }
+      if (!hit) continue;
 
       if (hit === 'l') {
         this.x = edges.l - this.r;
@@ -322,37 +312,39 @@ class Ball {
       function checkAdjacent(hit) {
         // If the ball has hit the corner of the square check for grid adjacent to it
 
+        const left = grid[collision.yIndex][collision.xIndex - 1] ? true : false;
+        const right = grid[collision.yIndex][collision.xIndex + 1] ? true : false;
+        const above = grid[collision.yIndex - 1][collision.xIndex] ? true : false;
+        const below = grid[collision.yIndex + 1][collision.xIndex] ? true : false;
+
+        const leftBool = left && left instanceof Square ? true : false;
+        const rightBool = right && right instanceof Square ? true : false;
+        const aboveBool = above && above instanceof Square ? true : false;
+        const belowBool = below && right instanceof Square ? true : false;
+
         // Check top left
         if (hit === 'tl') {
-          const above = grid[collision.yIndex - 1][collision.xIndex] ? true : false;
-          const left = grid[collision.yIndex][collision.xIndex - 1] ? true : false;
-          if (left && above) return;
-          else if (left) return 't';
-          else if (above) return 'l';
+          if (leftBool && aboveBool) return;
+          else if (leftBool) return 't';
+          else if (aboveBool) return 'l';
         }
         // Check top right
         else if (hit === 'tr') {
-          const above = grid[collision.yIndex - 1][collision.xIndex] ? true : false;
-          const right = grid[collision.yIndex][collision.xIndex + 1] ? true : false;
-          if (right && above) return;
-          else if (right) return 't';
-          else if (above) return 'r';
+          if (rightBool && aboveBool) return;
+          else if (rightBool) return 't';
+          else if (aboveBool) return 'r';
         }
         // Check bottom left
         else if (hit === 'bl') {
-          const below = grid[collision.yIndex + 1][collision.xIndex] ? true : false;
-          const left = grid[collision.yIndex][collision.xIndex - 1] ? true : false;
-          if (left && below) return;
-          else if (left) return 'b';
-          else if (below) return 'l';
+          if (leftBool && belowBool) return;
+          else if (leftBool) return 'b';
+          else if (belowBool) return 'l';
         }
         // Check bottom right
         else if (hit === 'br') {
-          const below = grid[collision.yIndex + 1][collision.xIndex] ? true : false;
-          const right = grid[collision.yIndex][collision.xIndex + 1] ? true : false;
-          if (right && below) return;
-          else if (right) return 'b';
-          else if (below) return 'r';
+          if (rightBool && belowBool) return;
+          else if (rightBool) return 'b';
+          else if (belowBool) return 'r';
         }
 
         // No corners were hit
@@ -433,6 +425,9 @@ class Ball {
       }
 
       function checkCorner(thisBall, corner, lastPos) {
+        if (edges.l === 1 * squareSize && edges.t === 5 * squareSize) {
+          // console.log(corner);
+        }
         // Get the x and y of the corner and whether the radius should be added or subtracted
         const sideX = edges[corner[1]];
         const signX = corner[1] === 'l' ? -1 : 1;
@@ -532,12 +527,13 @@ class Ball {
 }
 
 class Orb {
-  constructor(xIndex) {
+  constructor(xIndex, yIndex) {
     this.xIndex = xIndex;
-    this.yIndex = 0;
+    this.yIndex = yIndex || 0;
     this.innerR = 7;
     this.outerRSize = 12;
     this.outerR = this.outerRSize;
+    this.type = 'orb';
 
     grid[this.yIndex][this.xIndex] = this;
   }
@@ -564,14 +560,15 @@ class Orb {
 }
 
 class Square {
-  constructor(xIndex) {
+  constructor(xIndex, yIndex) {
     this.xIndex = xIndex;
-    this.yIndex = 0;
+    this.yIndex = yIndex || 0;
     this.health = Math.random() < 0.8 ? score : 2 * score;
     this.size = squareSize;
     this.fontSize = this.size / 2;
     this.backgroundColor = 'white';
     this.transparency = 1;
+    this.type = 'square';
 
     grid[this.yIndex][this.xIndex] = this;
   }
@@ -597,6 +594,16 @@ class Square {
 
     this.x = this.xIndex * squareSize;
     this.y = this.yIndex * squareSize;
+  }
+}
+
+function createGridArray() {
+  for (let n = 0; n < rowNum; n++) {
+    let array = [];
+    for (let n = 0; n < columnNum; n++) {
+      array.push(null);
+    }
+    grid.push(array);
   }
 }
 
@@ -661,8 +668,6 @@ function moveSquares() {
   }
 }
 
-generateSquares();
-
 document.addEventListener('mousemove', (e) => {
   const rect = canvas.getBoundingClientRect();
   mouse.x = e.clientX - rect.left;
@@ -679,7 +684,6 @@ document.addEventListener('mouseup', () => {
   mouse.down = false;
 
   if (aim.goodAngle && ballsLeft === -1) {
-    console.log('a');
     markerStart.shooting = true;
     markerStart.angle = aim.angle;
     markerStart.frameShot = frameCount - 1;
@@ -743,24 +747,54 @@ function loop() {
   requestAnimationFrame(loop);
 }
 
+createGridArray();
 loop();
+generateSquares();
+// loadGameState();
 
 // setInterval(loop, 100);
 
-function setGameState(gameStateString) {
-  const gameState = JSON.parse(gameStateString);
+function loadGameState() {
+  const gameState = JSON.parse(localStorage.getItem('gameState'));
   markerStart.x = gameState.markerX;
   markerStart.angle = gameState.aimAngle;
-  grid = gameState.grid;
+
+  grid = [];
+  createGridArray();
+
+  for (let i = 0; i < gameState.grid.length; i++) {
+    for (let j = 0; j < gameState.grid[i].length; j++) {
+      const cell = gameState.grid[i][j];
+      if (!cell) continue;
+      if (cell.type === 'orb') {
+        new Orb(cell.xIndex, cell.yIndex);
+      } else if (cell.type === 'square') {
+        new Square(cell.xIndex, cell.yIndex);
+      }
+    }
+  }
 
   markerStart.shooting = true;
 }
 
-function logGameState() {
+function saveGameState() {
+  let saveGrid = [];
+  for (let i = 0; i < grid.length; i++) {
+    for (let j = 0; j < grid[i].length; j++) {
+      const cell = grid[i][j];
+      if (cell) {
+        saveGrid.push({
+          xIndex: cell.xIndex,
+          yIndex: cell.yIndex,
+          type: cell.type,
+        });
+      }
+    }
+  }
   let gameState = {
     markerX: markerStart.x,
     aimAngle: aim.angle,
-    grid: grid,
+    grid: saveGrid,
   };
-  console.log(`setGameState('${JSON.stringify(gameState)}')`);
+  localStorage.setItem('gameState', JSON.stringify(gameState));
 }
