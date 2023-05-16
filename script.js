@@ -13,24 +13,19 @@ const ballSize = 12;
 const framesToMove = 50;
 let ballsLeft = -1;
 let squaresMoving = false;
-let addBall = false;
+let addBalls = 0;
 let score = 1;
 let stepsPerFrame = 1;
 let mouse = {};
 let balls = [null];
 let grid = [];
 
-// Funny color things
 let rgb = [
   { value: 0, change: 0 },
   { value: 0, change: 0 },
   { value: 0, change: 0 },
 ];
 let ballColor = `rgb(${rgb[0].value}, ${rgb[1].value}, ${rgb[2].value})`;
-
-function updateColor() {
-  ballColor = `rgb(${rgb[0].value}, ${rgb[1].value}, ${rgb[2].value})`;
-}
 
 let markerStart = {
   x: cnv.width / 2,
@@ -43,6 +38,7 @@ let markerStart = {
   shootDelay: 5,
 
   draw() {
+    if (!this.shooting && ballsLeft > -1) return;
     ctx.globalAlpha = 1;
     ctx.fillStyle = ballColor;
     ctx.beginPath();
@@ -61,7 +57,6 @@ let markerStart = {
     }
 
     if (this.shooting) this.shoot();
-    if (!this.shooting && ballsLeft > -1) return;
   },
 
   shoot() {
@@ -230,7 +225,7 @@ class Ball {
           let orb = grid[i][j];
           if ((orb.x - this.x) ** 2 + (orb.y - this.y) ** 2 < (orb.outerR + this.r) ** 2) {
             grid[i][j] = null;
-            addBall = true;
+            addBalls++;
           }
           continue;
         }
@@ -560,10 +555,10 @@ class Orb {
 }
 
 class Square {
-  constructor(xIndex, yIndex) {
+  constructor(xIndex, yIndex, health) {
     this.xIndex = xIndex;
     this.yIndex = yIndex || 0;
-    this.health = Math.random() < 0.8 ? score : 2 * score;
+    this.health = health || (Math.random() < 0.8 ? score : 2 * score);
     this.size = squareSize;
     this.fontSize = this.size / 2;
     this.backgroundColor = 'white';
@@ -597,7 +592,24 @@ class Square {
   }
 }
 
-function createGridArray() {
+function initialize() {
+  ballsLeft = -1;
+  squaresMoving = false;
+  addBalls = 0;
+  score = 1;
+  stepsPerFrame = 1;
+  mouse = {};
+  balls = [null];
+
+  rgb = [
+    { value: 0, change: 0 },
+    { value: 0, change: 0 },
+    { value: 0, change: 0 },
+  ];
+  ballColor = `rgb(${rgb[0].value}, ${rgb[1].value}, ${rgb[2].value})`;
+
+  grid = [];
+
   for (let n = 0; n < rowNum; n++) {
     let array = [];
     for (let n = 0; n < columnNum; n++) {
@@ -605,11 +617,119 @@ function createGridArray() {
     }
     grid.push(array);
   }
+
+  markerStart = {
+    x: cnv.width / 2,
+    y: cnv.height - ballSize,
+    r: ballSize,
+    shooting: false,
+    angle: 0,
+    frameShot: 0,
+    ballIndex: 0,
+    shootDelay: 5,
+
+    draw() {
+      if (!this.shooting && ballsLeft > -1) return;
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = ballColor;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.r, 0, 2 * Math.PI);
+      ctx.fill();
+    },
+
+    step() {
+      if (this.disappear) {
+        if (this.r > 0.5) {
+          this.r -= ballSize / framesToMove;
+          this.y += ballSize / framesToMove;
+        } else {
+          this.r = 0;
+        }
+      }
+
+      if (this.shooting) this.shoot();
+    },
+
+    shoot() {
+      if ((frameCount - this.frameShot) % this.shootDelay && frameCount - this.frameShot) return;
+      new Ball(this.angle + Math.PI + this.ballIndex * 0.0001 * 0, this.ballIndex);
+      this.ballIndex++;
+
+      if (this.ballIndex >= balls.length) this.shooting = false;
+    },
+  };
+
+  markerEnd = {
+    x: 0,
+    y: cnv.height - ballSize,
+    r: ballSize,
+
+    draw() {
+      if (ballsLeft === balls.length || ballsLeft === -1) return;
+
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = ballColor;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.r, 0, 2 * Math.PI);
+      ctx.fill();
+    },
+  };
+
+  aim = {
+    x: markerStart.x,
+    y: markerStart.y,
+    r: 7,
+    spacing: 15,
+    angle: 0,
+    goodAngle: false,
+
+    draw() {
+      if (!mouse.down || ballsLeft > -1 || squaresMoving) return;
+
+      this.updateAngle();
+      this.goodAngle = this.spacing > 20 && this.angle > 0.05 && this.angle < Math.PI - 0.05 ? true : false;
+
+      if (!this.goodAngle) return;
+
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = ballColor;
+
+      for (let n = 1; n <= 10; n++) {
+        const coords = this.getCoords(n);
+
+        ctx.beginPath();
+        ctx.arc(coords.x, coords.y, this.r, 0, 2 * Math.PI);
+        ctx.fill();
+      }
+    },
+
+    updateAngle() {
+      const run = mouse.x - mouse.downX;
+      const rise = mouse.y - mouse.downY;
+
+      this.angle = Math.atan2(rise, run);
+
+      this.spacing = Math.sqrt(run ** 2 + rise ** 2) * 0.1 + 15;
+    },
+
+    getCoords(n) {
+      const hyp = this.y - (this.y - n * this.spacing);
+
+      const x = markerStart.x - hyp * Math.cos(this.angle);
+      const y = markerStart.y - hyp * Math.sin(this.angle);
+
+      return { x: x, y: y };
+    },
+  };
+}
+
+function updateColor() {
+  ballColor = `rgb(${rgb[0].value}, ${rgb[1].value}, ${rgb[2].value})`;
 }
 
 function addScore() {
-  if (addBall) balls.push(null);
-  addBall = false;
+  for (let n = 0; n < addBalls; n++) balls.push(null);
+  addBalls = 0;
   ballsLeft--;
   markerStart.x = markerEnd.x;
   score++;
@@ -666,6 +786,66 @@ function moveSquares() {
       }
     }
   }
+}
+
+function loadGameState() {
+  const gameState = JSON.parse(localStorage.getItem('gameState'));
+  markerStart.x = gameState.markerX;
+  markerStart.angle = gameState.aimAngle;
+  balls = new Array(gameState.ballNum).fill(null);
+  score = gameState.score;
+
+  grid = [];
+
+  for (let i = 0; i < gameState.grid.length; i++) {
+    const cell = gameState.grid[i];
+    if (cell.type === 'orb') {
+      new Orb(cell.xIndex, cell.yIndex - 1);
+    } else if (cell.type === 'square') {
+      new Square(cell.xIndex, cell.yIndex - 1, cell.health);
+    }
+  }
+
+  moveSquares();
+
+  markerStart.shooting = gameState.shooting;
+}
+
+function saveGameState() {
+  let saveGrid = [];
+  for (let i = 0; i < grid.length; i++) {
+    for (let j = 0; j < grid[i].length; j++) {
+      const cell = grid[i][j];
+      if (cell) {
+        saveGrid.push({
+          xIndex: cell.xIndex,
+          yIndex: cell.yIndex,
+          health: cell.health,
+          type: cell.type,
+        });
+      }
+    }
+  }
+  let gameState = {
+    markerX: markerStart.x,
+    aimAngle: aim.angle,
+    shooting: markerStart.shooting,
+    score: score,
+    ballNum: balls.length,
+    grid: saveGrid,
+  };
+  localStorage.setItem('gameState', JSON.stringify(gameState));
+}
+
+function reloadScript() {
+  let scriptElement = document.getElementById('script');
+  let parentElement = scriptElement.parentNode;
+  parentElement.removeChild(scriptElement);
+
+  let head = document.getElementsByTagName('head')[0];
+  let script = document.createElement('script');
+  script.src = 'script.js';
+  head.appendChild(script);
 }
 
 document.addEventListener('mousemove', (e) => {
@@ -750,51 +930,6 @@ function loop() {
 createGridArray();
 loop();
 generateSquares();
-// loadGameState();
+if (localStorage.gameState) loadGameState();
 
 // setInterval(loop, 100);
-
-function loadGameState() {
-  const gameState = JSON.parse(localStorage.getItem('gameState'));
-  markerStart.x = gameState.markerX;
-  markerStart.angle = gameState.aimAngle;
-
-  grid = [];
-  createGridArray();
-
-  for (let i = 0; i < gameState.grid.length; i++) {
-    for (let j = 0; j < gameState.grid[i].length; j++) {
-      const cell = gameState.grid[i][j];
-      if (!cell) continue;
-      if (cell.type === 'orb') {
-        new Orb(cell.xIndex, cell.yIndex);
-      } else if (cell.type === 'square') {
-        new Square(cell.xIndex, cell.yIndex);
-      }
-    }
-  }
-
-  markerStart.shooting = true;
-}
-
-function saveGameState() {
-  let saveGrid = [];
-  for (let i = 0; i < grid.length; i++) {
-    for (let j = 0; j < grid[i].length; j++) {
-      const cell = grid[i][j];
-      if (cell) {
-        saveGrid.push({
-          xIndex: cell.xIndex,
-          yIndex: cell.yIndex,
-          type: cell.type,
-        });
-      }
-    }
-  }
-  let gameState = {
-    markerX: markerStart.x,
-    aimAngle: aim.angle,
-    grid: saveGrid,
-  };
-  localStorage.setItem('gameState', JSON.stringify(gameState));
-}
