@@ -474,7 +474,10 @@ class Square {
    }
 
    step() {
-      if (this.health <= 0) this.transparency -= 0.1;
+      if (this.health <= 0) {
+         this.transparency -= 0.1;
+         this.health = 0;
+      }
       if (this.transparency <= 0) return (grid[this.yIndex][this.xIndex] = null);
 
       this.x = this.xIndex * squareSize;
