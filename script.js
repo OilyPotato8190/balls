@@ -318,9 +318,6 @@ class Ball {
       }
 
       function checkCorner(thisBall, corner, lastPos) {
-        if (edges.l === 1 * squareSize && edges.t === 5 * squareSize) {
-          // console.log(corner);
-        }
         // Get the x and y of the corner and whether the radius should be added or subtracted
         const sideX = edges[corner[1]];
         const signX = corner[1] === 'l' ? -1 : 1;
@@ -392,8 +389,6 @@ class Ball {
         const reflection = subtractVectors(vector, scaleVector(normal, 2 * dotProduct));
         velocities.x = reflection.x * thisBall.speed;
         velocities.y = reflection.y * thisBall.speed;
-
-        console.log(thisBall.x);
 
         function getDotProduct(a, b) {
           return a.x * b.x + a.y * b.y;
@@ -833,10 +828,12 @@ function loop() {
 }
 
 localStorage.gameState =
-  '{"markerX":252.90892354892955,"aimAngle":0.8194832810800086,"shoot":true,"score":70,"ballNum":54,"grid":[{"xIndex":5,"yIndex":1,"health":5,"type":"square"},{"xIndex":4,"yIndex":2,"health":51,"type":"square"},{"xIndex":5,"yIndex":2,"health":51,"type":"square"},{"xIndex":6,"yIndex":2,"health":34,"type":"square"},{"xIndex":8,"yIndex":2,"health":0,"type":"square"},{"xIndex":2,"yIndex":3,"health":68,"type":"square"},{"xIndex":6,"yIndex":3,"health":43,"type":"square"},{"xIndex":9,"yIndex":3,"health":19,"type":"square"},{"xIndex":0,"yIndex":4,"health":116,"type":"square"},{"xIndex":3,"yIndex":4,"type":"orb"},{"xIndex":5,"yIndex":4,"health":0,"type":"square"},{"xIndex":8,"yIndex":4,"health":45,"type":"square"},{"xIndex":9,"yIndex":4,"health":37,"type":"square"},{"xIndex":11,"yIndex":4,"health":40,"type":"square"},{"xIndex":0,"yIndex":5,"health":48,"type":"square"},{"xIndex":1,"yIndex":5,"health":39,"type":"square"},{"xIndex":7,"yIndex":5,"type":"orb"},{"xIndex":10,"yIndex":5,"health":0,"type":"square"},{"xIndex":0,"yIndex":7,"health":20,"type":"square"},{"xIndex":3,"yIndex":7,"health":21,"type":"square"}]}';
+  '{"markerX":252.90892354892955,"aimAngle":0.8194832810800086,"shoot":true,"score":70,"ballNum":1,"grid":[{"xIndex":5,"yIndex":1,"health":5,"type":"square"},{"xIndex":4,"yIndex":2,"health":51,"type":"square"},{"xIndex":5,"yIndex":2,"health":51,"type":"square"},{"xIndex":6,"yIndex":2,"health":34,"type":"square"},{"xIndex":8,"yIndex":2,"health":0,"type":"square"},{"xIndex":2,"yIndex":3,"health":68,"type":"square"},{"xIndex":6,"yIndex":3,"health":43,"type":"square"},{"xIndex":9,"yIndex":3,"health":19,"type":"square"},{"xIndex":0,"yIndex":4,"health":116,"type":"square"},{"xIndex":3,"yIndex":4,"type":"orb"},{"xIndex":5,"yIndex":4,"health":0,"type":"square"},{"xIndex":8,"yIndex":4,"health":45,"type":"square"},{"xIndex":9,"yIndex":4,"health":37,"type":"square"},{"xIndex":11,"yIndex":4,"health":40,"type":"square"},{"xIndex":0,"yIndex":5,"health":48,"type":"square"},{"xIndex":1,"yIndex":5,"health":39,"type":"square"},{"xIndex":7,"yIndex":5,"type":"orb"},{"xIndex":10,"yIndex":5,"health":0,"type":"square"},{"xIndex":0,"yIndex":7,"health":20,"type":"square"},{"xIndex":3,"yIndex":7,"health":21,"type":"square"}]}';
+// '{"markerX":252.90892354892955,"aimAngle":0.8194832810800086,"shoot":true,"score":70,"ballNum":1,"grid":[{"xIndex":5,"yIndex":1,"health":5,"type":"square"},{"xIndex":4,"yIndex":2,"health":51,"type":"square"},{"xIndex":5,"yIndex":2,"health":51,"type":"square"},{"xIndex":6,"yIndex":2,"health":34,"type":"square"},{"xIndex":8,"yIndex":2,"health":0,"type":"square"},{"xIndex":2,"yIndex":3,"health":68,"type":"square"},{"xIndex":6,"yIndex":3,"health":43,"type":"square"},{"xIndex":9,"yIndex":3,"health":19,"type":"square"},{"xIndex":0,"yIndex":4,"health":116,"type":"square"},{"xIndex":3,"yIndex":4,"type":"orb"},{"xIndex":5,"yIndex":4,"health":0,"type":"square"},{"xIndex":8,"yIndex":4,"health":45,"type":"square"},{"xIndex":9,"yIndex":4,"health":37,"type":"square"},{"xIndex":11,"yIndex":4,"health":40,"type":"square"},{"xIndex":0,"yIndex":5,"health":48,"type":"square"},{"xIndex":1,"yIndex":5,"health":39,"type":"square"},{"xIndex":7,"yIndex":5,"type":"orb"},{"xIndex":10,"yIndex":5,"health":0,"type":"square"},{"xIndex":0,"yIndex":7,"health":20,"type":"square"},{"xIndex":3,"yIndex":7,"health":21,"type":"square"}]}';
+// '{"markerX":252.90892354892955,"aimAngle":0.8194832810800086,"shoot":true,"score":70,"ballNum":1,"grid":[{"xIndex":5,"yIndex":1,"health":5,"type":"square"},{"xIndex":4,"yIndex":2,"health":51,"type":"square"},{"xIndex":5,"yIndex":2,"health":51,"type":"square"},{"xIndex":8,"yIndex":2,"health":0,"type":"square"},{"xIndex":2,"yIndex":3,"health":68,"type":"square"},{"xIndex":6,"yIndex":3,"health":43,"type":"square"},{"xIndex":9,"yIndex":3,"health":19,"type":"square"},{"xIndex":0,"yIndex":4,"health":116,"type":"square"},{"xIndex":3,"yIndex":4,"type":"orb"},{"xIndex":5,"yIndex":4,"health":0,"type":"square"},{"xIndex":8,"yIndex":4,"health":45,"type":"square"},{"xIndex":9,"yIndex":4,"health":37,"type":"square"},{"xIndex":11,"yIndex":4,"health":40,"type":"square"},{"xIndex":0,"yIndex":5,"health":48,"type":"square"},{"xIndex":1,"yIndex":5,"health":39,"type":"square"},{"xIndex":7,"yIndex":5,"type":"orb"},{"xIndex":10,"yIndex":5,"health":0,"type":"square"},{"xIndex":0,"yIndex":7,"health":20,"type":"square"},{"xIndex":3,"yIndex":7,"health":21,"type":"square"}]}';
 initialize();
 loop();
 generateSquares();
 if (localStorage.gameState) loadGameState();
 
-// setInterval(loop, 100);
+// setInterval(loop, 500);
