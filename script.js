@@ -454,7 +454,7 @@ class Square {
       this.xIndex = xIndex;
       this.yIndex = yIndex || 0;
       this.health = health || (Math.random() < 0.8 ? score : 2 * score);
-      this.size = squareSize;
+      this.size = squareSize - 2;
       this.fontSize = this.size / 2;
       this.transparency = 1;
       this.type = 'square';
@@ -469,8 +469,8 @@ class Square {
       }
       if (this.transparency <= 0) return (grid[this.yIndex][this.xIndex] = null);
 
-      this.x = this.xIndex * squareSize;
-      this.y = this.yIndex * squareSize;
+      this.x = this.xIndex * squareSize + 1;
+      this.y = this.yIndex * squareSize + 1;
 
       ctx.globalAlpha = this.transparency;
       ctx.fillStyle = `hsl(${0.4 * this.health}, ${100 - Math.floor((0.4 * this.health) / 360) * 20}%, 40%)`;
@@ -478,7 +478,12 @@ class Square {
 
       ctx.fillStyle = `rgb(255, 255, 255)`;
       ctx.font = `${this.fontSize}px Comic Sans MS`;
-      const width = ctx.measureText(this.health).width;
+      let width = ctx.measureText(this.health).width;
+      while (width > squareSize - 10) {
+         this.fontSize--;
+         ctx.font = `${this.fontSize}px Comic Sans MS`;
+         width = ctx.measureText(this.health).width;
+      }
       ctx.fillText(this.health, this.x - width / 2 + this.size / 2, this.y + this.fontSize / 3 + this.size / 2);
    }
 }
@@ -504,7 +509,7 @@ function initialize() {
 
    gameOverScreen = {
       x: 0,
-      y: 0,
+      y: squareSize,
       w: cnv.width,
       h: 0,
       gameOver: false,
@@ -513,6 +518,23 @@ function initialize() {
          this.h = cnv.height * (1 - markerStart.r / ballSize);
          ctx.fillStyle = 'rgba(40, 40, 40, 0.98)';
          ctx.fillRect(this.x, this.y, this.w, this.h);
+
+         ctx.fillStyle = 'white';
+         ctx.font = '50px Comic Sans MS';
+         const width = ctx.measureText('Game Over').width;
+         ctx.fillText('Game Over', this.x + this.w / 2 - width / 2, this.h - 550);
+
+         ctx.fillStyle = 'red';
+         let restart = { w: 200, h: 50 };
+         ctx.beginPath();
+         ctx.roundRect(this.x + this.w / 2 - restart.w / 2, this.h - 450, restart.w, restart.h, 15);
+         ctx.fill();
+
+         ctx.fillStyle = 'blue';
+         let mainMenu = { w: 200, h: 50 };
+         ctx.beginPath();
+         ctx.roundRect(this.x + this.w / 2 - mainMenu.w / 2, this.h - 350, mainMenu.w, mainMenu.h, 15);
+         ctx.fill();
       },
    };
 
@@ -675,7 +697,7 @@ function moveSquares() {
          }
       }
    }
-   //  if (!squaresMoving) saveGameState();
+   // if (!squaresMoving) saveGameState();
 }
 
 function loadGameState() {
@@ -741,7 +763,7 @@ function shootBalls() {
    aim.frameShot = frameCount - 1;
    aim.ballIndex = 0;
    ballsLeft = balls.length;
-   //  saveGameState();
+   // saveGameState();
 }
 
 document.addEventListener('mousemove', (e) => {
@@ -787,7 +809,7 @@ function loop() {
       if (squaresMoving) moveSquares();
    }
 
-   if (aim.shooting && !squaresMoving) aim.shoot();
+   if (aim.shooting && !squaresMoving && !gameOverScreen.gameOver) aim.shoot();
 
    // Animation frames
    ctx.fillStyle = 'rgb(40, 40, 40)';
@@ -808,7 +830,7 @@ function loop() {
       }
    }
 
-   aim.draw();
+   if (!gameOverScreen.gameOver) aim.draw();
    markerStart.draw();
    markerEnd.draw();
 
