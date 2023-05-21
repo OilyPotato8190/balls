@@ -20,8 +20,8 @@ let stepsPerFrame;
 let mouse;
 let balls;
 let grid;
-let rgb;
 let ballColor;
+let gameOverScreen;
 let markerStart;
 let markerEnd;
 let aim;
@@ -215,10 +215,10 @@ class Ball {
             const above = grid[collision.yIndex - 1][collision.xIndex];
             const below = grid[collision.yIndex + 1][collision.xIndex];
 
-            const leftBool = left && left instanceof Square ? true : false;
-            const rightBool = right && right instanceof Square ? true : false;
-            const aboveBool = above && above instanceof Square ? true : false;
-            const belowBool = below && below instanceof Square ? true : false;
+            const leftBool = left && left instanceof Square && left.transparency === 1 ? true : false;
+            const rightBool = right && right instanceof Square && right.transparency === 1 ? true : false;
+            const aboveBool = above && above instanceof Square && above.transparency === 1 ? true : false;
+            const belowBool = below && below instanceof Square && below.transparency === 1 ? true : false;
 
             // Check top left
             if (hit === 'tl') {
@@ -476,12 +476,7 @@ class Square {
       ctx.fillStyle = `hsl(${0.4 * this.health}, ${100 - Math.floor((0.4 * this.health) / 360) * 20}%, 40%)`;
       ctx.fillRect(this.x, this.y, this.size, this.size);
 
-      if (this.health < 1) console.log(this.health);
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = `hsl(${0.4 * this.health}, ${100 - Math.floor((0.4 * this.health) / 360) * 20}%, 40%)`;
-      ctx.strokeRect(this.x + ctx.lineWidth, this.y + ctx.lineWidth, this.size - ctx.lineWidth * 2, this.size - ctx.lineWidth * 2);
-
-      ctx.fillStyle = 'white';
+      ctx.fillStyle = `rgb(255, 255, 255)`;
       ctx.font = `${this.fontSize}px Comic Sans MS`;
       const width = ctx.measureText(this.health).width;
       ctx.fillText(this.health, this.x - width / 2 + this.size / 2, this.y + this.fontSize / 3 + this.size / 2);
@@ -507,6 +502,20 @@ function initialize() {
       grid.push(array);
    }
 
+   gameOverScreen = {
+      x: 0,
+      y: 0,
+      w: cnv.width,
+      h: 0,
+      gameOver: false,
+
+      draw() {
+         this.h = cnv.height * (1 - markerStart.r / ballSize);
+         ctx.fillStyle = 'rgba(40, 40, 40, 0.98)';
+         ctx.fillRect(this.x, this.y, this.w, this.h);
+      },
+   };
+
    markerStart = {
       x: cnv.width / 2,
       y: cnv.height - ballSize,
@@ -515,7 +524,9 @@ function initialize() {
 
       draw() {
          if (this.disappear) {
-            if (this.r > 0.5) {
+            gameOverScreen.gameOver = true;
+            // localStorage.removeItem('gameState');
+            if (this.r - ballSize / framesToMove > 0) {
                this.r -= ballSize / framesToMove;
                this.y += ballSize / framesToMove;
             } else {
@@ -753,6 +764,8 @@ document.addEventListener('mouseup', () => {
 
 let frameCount = 0;
 function loop() {
+   requestAnimationFrame(loop);
+
    ballColor = `hsl(${frameCount * 0.2}, 100%, 50%)`;
 
    // Simulation steps
@@ -786,6 +799,9 @@ function loop() {
       }
    }
 
+   ctx.fillStyle = 'rgb(40, 40, 40)';
+   ctx.fillRect(0, 0, cnv.width, squareSize);
+
    for (let i = 0; i < balls.length; i++) {
       if (balls[i]) {
          balls[i].draw();
@@ -796,11 +812,9 @@ function loop() {
    markerStart.draw();
    markerEnd.draw();
 
-   requestAnimationFrame(loop);
+   if (gameOverScreen.gameOver) gameOverScreen.draw();
 }
 
-localStorage.gameState =
-   '{"markerX":323.73948728614243,"aimAngle":1.4965284139021569,"shoot":true,"score":153,"ballNum":30,"grid":[{"xIndex":0,"yIndex":1,"health":153,"type":"square"},{"xIndex":2,"yIndex":1,"health":153,"type":"square"},{"xIndex":6,"yIndex":1,"health":306,"type":"square"},{"xIndex":7,"yIndex":1,"health":306,"type":"square"},{"xIndex":10,"yIndex":1,"type":"orb"},{"xIndex":2,"yIndex":2,"health":304,"type":"square"},{"xIndex":3,"yIndex":2,"type":"orb"},{"xIndex":6,"yIndex":2,"health":152,"type":"square"},{"xIndex":7,"yIndex":2,"health":152,"type":"square"},{"xIndex":10,"yIndex":2,"health":152,"type":"square"},{"xIndex":11,"yIndex":2,"health":152,"type":"square"},{"xIndex":0,"yIndex":3,"health":302,"type":"square"},{"xIndex":2,"yIndex":3,"health":151,"type":"square"},{"xIndex":3,"yIndex":3,"health":123,"type":"square"},{"xIndex":8,"yIndex":3,"health":79,"type":"square"},{"xIndex":10,"yIndex":3,"health":164,"type":"square"},{"xIndex":1,"yIndex":4,"health":301,"type":"square"},{"xIndex":3,"yIndex":4,"health":572,"type":"square"},{"xIndex":6,"yIndex":4,"health":213,"type":"square"},{"xIndex":8,"yIndex":4,"health":518,"type":"square"},{"xIndex":11,"yIndex":4,"health":261,"type":"square"},{"xIndex":0,"yIndex":5,"health":181,"type":"square"},{"xIndex":1,"yIndex":5,"health":181,"type":"square"},{"xIndex":2,"yIndex":5,"type":"orb"},{"xIndex":4,"yIndex":5,"health":123,"type":"square"},{"xIndex":7,"yIndex":5,"health":151,"type":"square"},{"xIndex":2,"yIndex":6,"health":121,"type":"square"},{"xIndex":3,"yIndex":6,"health":121,"type":"square"},{"xIndex":4,"yIndex":6,"type":"orb"},{"xIndex":6,"yIndex":6,"health":214,"type":"square"},{"xIndex":8,"yIndex":6,"health":83,"type":"square"},{"xIndex":1,"yIndex":7,"health":60,"type":"square"},{"xIndex":6,"yIndex":7,"health":2,"type":"square"},{"xIndex":7,"yIndex":7,"type":"orb"},{"xIndex":8,"yIndex":7,"health":26,"type":"square"},{"xIndex":0,"yIndex":8,"type":"orb"},{"xIndex":2,"yIndex":8,"health":26,"type":"square"},{"xIndex":6,"yIndex":8,"health":4,"type":"square"},{"xIndex":7,"yIndex":8,"health":26,"type":"square"},{"xIndex":2,"yIndex":9,"health":28,"type":"square"},{"xIndex":3,"yIndex":9,"health":4,"type":"square"},{"xIndex":0,"yIndex":10,"health":27,"type":"square"},{"xIndex":1,"yIndex":10,"health":27,"type":"square"},{"xIndex":11,"yIndex":10,"health":18,"type":"square"},{"xIndex":0,"yIndex":11,"health":38,"type":"square"},{"xIndex":11,"yIndex":11,"health":10,"type":"square"}]}';
 initialize();
 loop();
 generateSquares();
