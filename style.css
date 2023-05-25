@@ -1,9 +1,23 @@
 body {
-   text-align: center;
-   background-color: rgb(45, 45, 45);
+  text-align: center;
+  background-color: rgb(45, 45, 45);
 }
 
 h1 {
-   color: white;
-   font-family: 'Comic Sans MS';
+  color: white;
+  font-family: 'Comic Sans MS';
+  display: inline;
+}
+
+div {
+  position: relative;
+  margin: auto;
+}
+
+#pause {
+  width: 40px;
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
 }
