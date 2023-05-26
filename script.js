@@ -18,7 +18,7 @@ cnv.height = squareSize * rowNum;
 divEl.style.width = cnv.width + 'px';
 
 const ballSize = 12;
-const framesToMove = 1;
+const framesToMove = 50;
 
 let ballsLeft;
 let squaresMoving;
