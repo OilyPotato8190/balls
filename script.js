@@ -12,13 +12,13 @@ let divEl = document.getElementById('div');
 const squareSize = 50;
 const rowNum = 15;
 const columnNum = 12;
-const fontFamily = 'Calibri';
+const fontFamily = 'Tahoma';
 cnv.width = squareSize * columnNum;
 cnv.height = squareSize * rowNum;
 divEl.style.width = cnv.width + 'px';
 
 const ballSize = 12;
-const framesToMove = 50;
+const framesToMove = 1;
 
 let ballsLeft;
 let squaresMoving;
@@ -549,60 +549,113 @@ function initialize() {
 
   pauseScreen = {
     x: 0,
-    y: squareSize,
+    y: 0,
     w: cnv.width,
-    h: 0,
-    title: 'PAUSED',
+    h: cnv.height,
+    title: { text: 'PAUSED' },
     isPaused: false,
     isGameOver: false,
+    restart: {},
+    resume: {},
+
+    init() {
+      ctx.font = '50px ' + fontFamily;
+      const titleWidth = ctx.measureText(this.title.text).width;
+      this.title.x = this.w / 2 - titleWidth / 2;
+      this.title.y = this.h - 550;
+
+      this.resume.w = 200;
+      this.resume.h = 50;
+      this.resume.x = this.x + this.w / 2 - this.resume.w / 2;
+      this.resume.y = cnv.width - 320;
+
+      this.restart.w = 200;
+      this.restart.h = 50;
+      this.restart.x = this.x + this.w / 2 - this.restart.w / 2;
+      this.restart.y = cnv.width - 220;
+    },
 
     draw() {
-      this.h = this.isGameOver ? cnv.height * (1 - markerStart.r / ballSize) : cnv.height;
+      this.clickButtons();
+
+      if (this.isGameOver) {
+        this.h = cnv.height * (1 - markerStart.r / ballSize);
+        this.title.y = this.h - 480;
+        this.restart.y = this.h - 380;
+      }
+
       ctx.fillStyle = 'rgba(40, 40, 40, 0.98)';
       ctx.fillRect(this.x, this.y, this.w, this.h);
 
       ctx.fillStyle = 'white';
       ctx.font = '50px ' + fontFamily;
-      const titleWidth = ctx.measureText(this.title).width;
-      ctx.fillText(this.title, this.x + this.w / 2 - titleWidth / 2, this.h - 550);
+      ctx.fillText(this.title.text, this.title.x, this.title.y);
 
-      let restart = {
-        w: 200,
-        h: 50,
-      };
-      restart.x = this.x + this.w / 2 - restart.w / 2;
-      restart.y = this.h - 450;
-
-      ctx.fillStyle = 'red';
+      ctx.fillStyle = 'rgb(40, 40, 200)';
       ctx.beginPath();
-      ctx.roundRect(restart.x, restart.y, restart.w, restart.h, 15);
+      ctx.roundRect(this.resume.x, this.resume.y, this.resume.w, this.resume.h, 15);
+      ctx.fill();
+
+      ctx.fillStyle = 'rgb(200, 40, 40)';
+      ctx.beginPath();
+      ctx.roundRect(this.restart.x, this.restart.y, this.restart.w, this.restart.h, 15);
       ctx.fill();
 
       ctx.fillStyle = 'white';
-      ctx.font = '20px ' + fontFamily;
-      const restartWidth = ctx.measureText('RESTART').width;
-      ctx.fillText('RESTART', restart.x + restart.w / 2 - restartWidth / 2, restart.y + restart.h / 2 + (20 * 0.8) / 2);
+      ctx.font = '25px ' + fontFamily;
 
-      let resume = { w: 200, h: 50 };
-      resume.x = this.x + this.w / 2 - resume.w / 2;
-      resume.y = this.h - 350;
+      const resumeWidth = ctx.measureText('Resume').width;
+      ctx.fillText(
+        'Resume',
+        this.resume.x + this.resume.w / 2 - resumeWidth / 2,
+        this.resume.y + this.restart.h / 2 + (25 * 0.8) / 2
+      );
 
-      ctx.fillStyle = 'blue';
-      ctx.beginPath();
-      ctx.roundRect(resume.x, resume.y, resume.w, resume.h, 15);
-      ctx.fill();
+      const restartWidth = ctx.measureText('Restart').width;
+      ctx.fillText(
+        'Restart',
+        this.restart.x + this.restart.w / 2 - restartWidth / 2,
+        this.restart.y + this.restart.h / 2 + (25 * 0.8) / 2
+      );
+    },
 
-      ctx.fillStyle = 'white';
-      ctx.font = '20px ' + fontFamily;
-      const resumeWidth = ctx.measureText('RESUME').width;
-      ctx.fillText('RESUME', resume.x + resume.w / 2 - resumeWidth / 2, resume.y + restart.h / 2 + (20 * 0.8) / 2);
+    clickButtons() {
+      if (!mouse.down) return;
+
+      function checkClick(button) {
+        if (
+          mouse.x > button.x &&
+          mouse.x < button.x + button.w &&
+          mouse.y > button.y &&
+          mouse.y < button.y + button.h
+        ) {
+          return true;
+        }
+      }
+
+      if (checkClick(this.restart)) {
+        mouse.down = false;
+        this.isPaused = false;
+        localStorage.removeItem('gameState');
+        initialize();
+        generateSquares();
+      } else if (checkClick(this.resume)) {
+        mouse.down = false;
+        this.isPaused = false;
+      }
     },
 
     setGameOver() {
-      this.title = 'GAME OVER';
+      this.h = squareSize;
+      this.title.text = 'GAME OVER';
       this.isGameOver = true;
+      ctx.font = '50px ' + fontFamily;
+      const titleWidth = ctx.measureText(this.title.text).width;
+      this.title.x = this.w / 2 - titleWidth / 2;
+      this.resume.y = Infinity;
     },
   };
+  pauseScreen.init();
 
   markerStart = {
     x: cnv.width / 2,
@@ -614,7 +667,7 @@ function initialize() {
       if (this.disappear) {
         pauseScreen.setGameOver();
         pauseScreen.isPaused = true;
-        // localStorage.removeItem('gameState');
+        localStorage.removeItem('gameState');
         if (this.r - ballSize / framesToMove > 0) {
           this.r -= ballSize / framesToMove;
           this.y += ballSize / framesToMove;
@@ -749,7 +802,7 @@ function moveSquares() {
   squaresMoving = true;
 
   for (let i = 0; i < grid[grid.length - 1].length; i++) {
-    if (grid[grid.length - 1][i]) markerStart.disappear = true;
+    if (grid[grid.length - 1][i]) return (markerStart.disappear = true);
   }
 
   for (let i = 0; i < grid.length; i++) {
@@ -764,7 +817,7 @@ function moveSquares() {
       }
     }
   }
-  // if (!squaresMoving) saveGameState();
+  if (!squaresMoving) saveGameState();
 }
 
 function loadGameState() {
@@ -830,7 +883,7 @@ function shootBalls() {
   aim.frameShot = frameCount - 1;
   aim.ballIndex = 0;
   ballsLeft = balls.length;
-  // saveGameState();
+  saveGameState();
 }
 
 let frameCount = 0;
@@ -840,25 +893,27 @@ function loop() {
   ballColor = `hsl(${frameCount * 0.2}, 100%, 50%)`;
 
   // Simulation steps
-  for (let n = 0; n < stepsPerFrame; n++) {
-    frameCount++;
+  if (!pauseScreen.isPaused) {
+    for (let n = 0; n < stepsPerFrame; n++) {
+      frameCount++;
 
-    for (let i = 0; i < grid.length; i++) {
-      for (let j = 0; j < grid[i].length; j++) {
-        if (grid[i][j]?.step) grid[i][j].step();
+      for (let i = 0; i < grid.length; i++) {
+        for (let j = 0; j < grid[i].length; j++) {
+          if (grid[i][j]?.step) grid[i][j].step();
+        }
       }
+
+      for (let i = 0; i < balls.length; i++) {
+        if (balls[i]) {
+          balls[i].step();
+        }
+      }
+
+      if (squaresMoving) moveSquares();
     }
 
-    for (let i = 0; i < balls.length; i++) {
-      if (balls[i]) {
-        balls[i].step();
-      }
-    }
-
-    if (squaresMoving) moveSquares();
+    if (aim.shooting && !squaresMoving && !pauseScreen.isPaused) aim.shoot();
   }
-
-  if (aim.shooting && !squaresMoving && !pauseScreen.isPaused) aim.shoot();
 
   // Animation frames
   ctx.fillStyle = 'rgb(40, 40, 40)';

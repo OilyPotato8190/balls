@@ -1,6 +1,9 @@
 body {
   text-align: center;
   background-color: rgb(45, 45, 45);
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
 
 h1 {
