@@ -5,20 +5,17 @@ const ctx = cnv.getContext('2d');
 
 let scoreEl = document.getElementById('score');
 let pauseEl = document.getElementById('pause');
+let fasterEl = document.getElementById('faster');
 let divEl = document.getElementById('div');
 
 // Global Variables
 
+const ballSize = 12;
+const framesToMove = 1;
 const squareSize = 50;
 const rowNum = 15;
 const columnNum = 12;
 const fontFamily = 'Tahoma';
-cnv.width = squareSize * columnNum;
-cnv.height = squareSize * rowNum;
-divEl.style.width = cnv.width + 'px';
-
-const ballSize = 12;
-const framesToMove = 50;
 
 let ballsLeft;
 let squaresMoving;
@@ -33,6 +30,11 @@ let pauseScreen;
 let markerStart;
 let markerEnd;
 let aim;
+let faster;
+
+cnv.width = squareSize * columnNum;
+cnv.height = squareSize * rowNum;
+divEl.style.width = cnv.width + 'px';
 
 // Event Listeners
 
@@ -51,7 +53,7 @@ document.addEventListener('mousedown', () => {
 document.addEventListener('mouseup', () => {
   mouse.down = false;
 
-  if (aim.goodAngle && ballsLeft === -1) shootBalls();
+  if (aim.goodAngle && ballsLeft === -1 && !squaresMoving) shootBalls();
 });
 
 pauseEl.addEventListener('click', () => {
@@ -77,7 +79,6 @@ class Ball {
   }
 
   draw() {
-    ctx.globalAlpha = 1;
     ctx.fillStyle = ballColor;
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.r, 0, 2 * Math.PI);
@@ -467,7 +468,6 @@ class Orb {
   }
 
   draw() {
-    ctx.globalAlpha = 1;
     ctx.fillStyle = 'white';
     ctx.lineWidth = 3;
     ctx.beginPath();
@@ -523,6 +523,8 @@ class Square {
       width = ctx.measureText(this.health).width;
     }
     ctx.fillText(this.health, this.x - width / 2 + this.size / 2, this.y + this.fontSize / 3 + this.size / 2);
+
+    ctx.globalAlpha = 1;
   }
 }
 
@@ -646,6 +648,9 @@ function initialize() {
     },
 
     setGameOver() {
+        pauseScreen.isPaused = true;
+        localStorage.removeItem('gameState');
+        markerStart.disappear = true
       this.h = squareSize;
       this.title.text = 'GAME OVER';
       this.isGameOver = true;
@@ -665,9 +670,6 @@ function initialize() {
 
     draw() {
       if (this.disappear) {
-        pauseScreen.setGameOver();
-        pauseScreen.isPaused = true;
-        localStorage.removeItem('gameState');
         if (this.r - ballSize / framesToMove > 0) {
           this.r -= ballSize / framesToMove;
           this.y += ballSize / framesToMove;
@@ -677,7 +679,6 @@ function initialize() {
       }
 
       if (!aim.shooting && ballsLeft > -1) return;
-      ctx.globalAlpha = 1;
       ctx.fillStyle = ballColor;
       ctx.beginPath();
       ctx.arc(this.x, this.y, this.r, 0, 2 * Math.PI);
@@ -693,7 +694,6 @@ function initialize() {
     draw() {
       if (ballsLeft === balls.length || ballsLeft === -1) return;
 
-      ctx.globalAlpha = 1;
       ctx.fillStyle = ballColor;
       ctx.beginPath();
       ctx.arc(this.x, this.y, this.r, 0, 2 * Math.PI);
@@ -720,7 +720,6 @@ function initialize() {
       this.goodAngle = this.spacing > 20 && this.angle > 0.05 && this.angle < Math.PI - 0.05 ? true : false;
       if (!this.goodAngle) return;
 
-      ctx.globalAlpha = 1;
       ctx.fillStyle = ballColor;
       for (let n = 1; n <= 10; n++) {
         const coords = this.getCoords(n);
@@ -757,10 +756,40 @@ function initialize() {
       if (this.ballIndex >= balls.length) this.shooting = false;
     },
   };
+
+  faster = {
+    x: cnv.width - 35,
+    y: 10,
+    size: 25,
+    doDraw: false,
+    clicked: false,
+
+    draw() {
+      if (!this.doDraw) return;
+      if (stepsPerFrame === 1) this.checkClick();
+
+      if (stepsPerFrame != 1) ctx.globalAlpha = 0.5 * Math.sin(0.08 * frameCount) + 0.5;
+      ctx.drawImage(fasterEl, this.x, this.y, this.size, this.size);
+    },
+
+    checkClick() {
+      if (
+        mouse.down &&
+        mouse.x > this.x &&
+        mouse.x < this.x + this.size &&
+        mouse.y > this.y &&
+        mouse.y < this.y + this.size
+      ) {
+        stepsPerFrame = 3;
+      }
+    },
+  };
 }
 
 function addScore() {
   for (let n = 0; n < addBalls; n++) balls.push(null);
+  stepsPerFrame = 1;
+  faster.doDraw = false;
   addBalls = 0;
   ballsLeft--;
   markerStart.x = markerEnd.x;
@@ -802,7 +831,7 @@ function moveSquares() {
   squaresMoving = true;
 
   for (let i = 0; i < grid[grid.length - 1].length; i++) {
-    if (grid[grid.length - 1][i]) return (markerStart.disappear = true);
+    if (grid[grid.length - 1][i]) return (pauseScreen.setGameOver() = true);
   }
 
   for (let i = 0; i < grid.length; i++) {
@@ -886,36 +915,30 @@ function shootBalls() {
   saveGameState();
 }
 
-let frameCount = 0;
-function loop() {
-  requestAnimationFrame(loop);
+function simulationStep() {
+  frameCount++;
+  if (frameCount - aim.frameShot === 100 && ballsLeft != -1) faster.doDraw = true;
 
   ballColor = `hsl(${frameCount * 0.2}, 100%, 50%)`;
 
-  // Simulation steps
-  if (!pauseScreen.isPaused) {
-    for (let n = 0; n < stepsPerFrame; n++) {
-      frameCount++;
+  if (aim.shooting && !squaresMoving && !pauseScreen.isPaused) aim.shoot();
 
-      for (let i = 0; i < grid.length; i++) {
-        for (let j = 0; j < grid[i].length; j++) {
-          if (grid[i][j]?.step) grid[i][j].step();
-        }
-      }
-
-      for (let i = 0; i < balls.length; i++) {
-        if (balls[i]) {
-          balls[i].step();
-        }
-      }
-
-      if (squaresMoving) moveSquares();
+  for (let i = 0; i < grid.length; i++) {
+    for (let j = 0; j < grid[i].length; j++) {
+      if (grid[i][j]?.step) grid[i][j].step();
     }
-
-    if (aim.shooting && !squaresMoving && !pauseScreen.isPaused) aim.shoot();
   }
 
-  // Animation frames
+  for (let i = 0; i < balls.length; i++) {
+    if (balls[i]) {
+      balls[i].step();
+    }
+  }
+
+  if (squaresMoving) moveSquares();
+}
+
+function animationFrame() {
   ctx.fillStyle = 'rgb(40, 40, 40)';
   ctx.fillRect(0, 0, cnv.width, cnv.height);
 
@@ -937,8 +960,24 @@ function loop() {
   if (!pauseScreen.isPaused) aim.draw();
   markerStart.draw();
   markerEnd.draw();
+  faster.draw();
 
   if (pauseScreen.isPaused) pauseScreen.draw();
+}
+
+let frameCount = 0;
+function loop() {
+  requestAnimationFrame(loop);
+
+  // Simulation steps
+  if (!pauseScreen.isPaused) {
+    for (let n = 0; n < stepsPerFrame; n++) {
+      simulationStep();
+    }
+  }
+
+  // Animation frames
+  animationFrame();
 }
 
 initialize();
