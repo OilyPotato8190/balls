@@ -11,12 +11,13 @@ let divEl = document.getElementById('div');
 // Global Variables
 
 const ballSize = 12;
-const framesToMove = 1;
+const framesToMove = 50;
 const squareSize = 50;
 const rowNum = 15;
 const columnNum = 12;
 const fontFamily = 'Tahoma';
 
+let frameCount;
 let ballsLeft;
 let squaresMoving;
 let addBalls;
@@ -79,6 +80,7 @@ class Ball {
   }
 
   draw() {
+    if (!balls[this.index]) return;
     ctx.fillStyle = ballColor;
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.r, 0, 2 * Math.PI);
@@ -89,7 +91,6 @@ class Ball {
     this.move();
     if (this.sliding) this.slide();
     else this.checkCollision();
-    if (!balls[this.index]) return;
   }
 
   setVelocity(angle) {
@@ -116,18 +117,28 @@ class Ball {
     }
   }
 
+  moveTo(value, axis) {
+    if (axis === 'x') {
+      this.y += this.vy * ((value - this.x) / this.vx);
+      this.x = value;
+    } else if (axis === 'y') {
+      this.x += this.vx * ((value - this.y) / this.vy);
+      this.y = value;
+    }
+  }
+
   checkCollision() {
     if (this.x + this.r > cnv.width) {
+      this.moveTo(cnv.width - this.r, 'x');
       this.vx *= -1;
-      this.x = cnv.width - this.r;
     } else if (this.x - this.r < 0) {
+      this.moveTo(this.r, 'x');
       this.vx *= -1;
-      this.x = this.r;
     }
 
     if (this.y - this.r < 0) {
+      this.moveTo(this.r, 'y');
       this.vy *= -1;
-      this.y = this.r;
     } else if (this.y + this.r > cnv.height) {
       ballsLeft--;
 
@@ -140,8 +151,8 @@ class Ball {
 
       this.sliding = true;
       this.vx = Math.sign(markerEnd.x - this.x) * this.speed;
+      this.moveTo(cnv.height - this.r, 'y');
       this.vy = 0;
-      this.y = cnv.height - this.r;
       return;
     }
 
@@ -162,7 +173,7 @@ class Ball {
 
         // Square collision check
         const square = grid[i][j];
-        if (!square || square.transparency != 1) continue;
+        if (!square || square.transparency != 1 || !square.x || !square.y) continue;
 
         const squareEdges = {
           l: square.x,
@@ -213,24 +224,16 @@ class Ball {
       if (!hit) continue;
 
       if (hit === 'l') {
-        const newX = edges.l - this.r;
-        this.y += this.vy * ((newX - this.x) / this.vx);
-        this.x = newX;
+        this.moveTo(edges.l - this.r, 'x');
         velocities.x = -Math.abs(this.vx);
       } else if (hit == 'r') {
-        const newX = edges.r + this.r;
-        this.y += this.vy * ((newX - this.x) / this.vx);
-        this.x = newX;
+        this.moveTo(edges.r + this.r, 'x');
         velocities.x = Math.abs(this.vx);
       } else if (hit === 't') {
-        const newY = edges.t - this.r;
-        this.x += this.vx * ((newY - this.y) / this.vy);
-        this.y = newY;
+        this.moveTo(edges.t - this.r, 'y');
         velocities.y = -Math.abs(this.vy);
       } else if (hit === 'b') {
-        const newY = edges.b + this.r;
-        this.x += this.vx * ((newY - this.y) / this.vy);
-        this.y = newY;
+        this.moveTo(edges.b + this.r, 'y');
         velocities.y = Math.abs(this.vy);
       } else {
         const corner = {
@@ -505,15 +508,19 @@ class Square {
       this.transparency -= 0.1;
       this.health = 0;
     }
+
     if (this.transparency <= 0) return (grid[this.yIndex][this.xIndex] = null);
 
     this.x = this.xIndex * squareSize + 1;
     this.y = this.yIndex * squareSize + 1;
 
     ctx.globalAlpha = this.transparency;
+
+    // Square
     ctx.fillStyle = `hsl(${0.4 * this.health}, ${100 - Math.floor((0.4 * this.health) / 360) * 20}%, 40%)`;
     ctx.fillRect(this.x, this.y, this.size, this.size);
 
+    // Text
     ctx.fillStyle = `rgb(255, 255, 255)`;
     ctx.font = `${this.fontSize}px ${fontFamily}`;
     let width = ctx.measureText(this.health).width;
@@ -531,6 +538,7 @@ class Square {
 // Functions
 
 function initialize() {
+  frameCount = 0;
   ballsLeft = -1;
   squaresMoving = false;
   addBalls = 0;
@@ -648,9 +656,9 @@ function initialize() {
     },
 
     setGameOver() {
-        pauseScreen.isPaused = true;
-        localStorage.removeItem('gameState');
-        markerStart.disappear = true
+      pauseScreen.isPaused = true;
+      localStorage.removeItem('gameState');
+      markerStart.disappear = true;
       this.h = squareSize;
       this.title.text = 'GAME OVER';
       this.isGameOver = true;
@@ -717,7 +725,7 @@ function initialize() {
       if (!mouse.down || ballsLeft > -1 || squaresMoving) return;
 
       this.updateAngle();
-      this.goodAngle = this.spacing > 20 && this.angle > 0.05 && this.angle < Math.PI - 0.05 ? true : false;
+      this.goodAngle = this.spacing > 20 && this.angle > 0.05 && this.angle < Math.PI - 0.05;
       if (!this.goodAngle) return;
 
       ctx.fillStyle = ballColor;
@@ -765,11 +773,13 @@ function initialize() {
     clicked: false,
 
     draw() {
+      if (frameCount - aim.frameShot === 600 && ballsLeft != -1) this.doDraw = true;
       if (!this.doDraw) return;
       if (stepsPerFrame === 1) this.checkClick();
 
       if (stepsPerFrame != 1) ctx.globalAlpha = 0.5 * Math.sin(0.08 * frameCount) + 0.5;
       ctx.drawImage(fasterEl, this.x, this.y, this.size, this.size);
+      ctx.globalAlpha = 1;
     },
 
     checkClick() {
@@ -831,7 +841,7 @@ function moveSquares() {
   squaresMoving = true;
 
   for (let i = 0; i < grid[grid.length - 1].length; i++) {
-    if (grid[grid.length - 1][i]) return (pauseScreen.setGameOver() = true);
+    if (grid[grid.length - 1][i]) return pauseScreen.setGameOver();
   }
 
   for (let i = 0; i < grid.length; i++) {
@@ -917,7 +927,6 @@ function shootBalls() {
 
 function simulationStep() {
   frameCount++;
-  if (frameCount - aim.frameShot === 100 && ballsLeft != -1) faster.doDraw = true;
 
   ballColor = `hsl(${frameCount * 0.2}, 100%, 50%)`;
 
@@ -965,10 +974,7 @@ function animationFrame() {
   if (pauseScreen.isPaused) pauseScreen.draw();
 }
 
-let frameCount = 0;
 function loop() {
-  requestAnimationFrame(loop);
-
   // Simulation steps
   if (!pauseScreen.isPaused) {
     for (let n = 0; n < stepsPerFrame; n++) {
@@ -978,11 +984,15 @@ function loop() {
 
   // Animation frames
   animationFrame();
+
+  requestAnimationFrame(loop);
 }
 
-initialize();
+// Start Game
+if (localStorage.gameState) {
+  loadGameState();
+} else {
+  initialize();
+  generateSquares();
+}
 loop();
-generateSquares();
-if (localStorage.gameState) loadGameState();
-
-// setInterval(loop, 100);
