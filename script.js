@@ -745,6 +745,7 @@ function initialize() {
       this.angle = Math.atan2(rise, run);
 
       this.spacing = Math.sqrt(run ** 2 + rise ** 2) * 0.1 + 15;
+      if (this.spacing > 70) this.spacing = 70;
     },
 
     getCoords(n) {
